@@ -1,0 +1,11 @@
+[package]
+
+name = "bytekey"
+version = "0.0.1"
+authors = ["Dan Burkert <dan@danburkert.com>"]
+
+[dev-dependencies.quickcheck]
+git = "https://github.com/BurntSushi/quickcheck.git"
+
+[dev-dependencies.quickcheck_macros]
+git = "https://github.com/BurntSushi/quickcheck.git"
