@@ -309,6 +309,7 @@ impl<'a> Encoder<'a> {
     }
 }
 
+/// The error type returned by all encoding operations supported by `Encoder`.
 pub type EncodeResult = io::IoResult<()>;
 
 impl<'a> serialize::Encoder<io::IoError> for Encoder<'a> {

@@ -7,7 +7,7 @@ use std::iter::range_inclusive;
 use std::io::IoError;
 use std::mem::transmute;
 
-/// A decoder for deserializing bytes in a lexicographic sort order preserving format to a value.
+/// A decoder for deserializing bytes in an order preserving format to a value.
 pub struct Decoder<R> {
     reader: io::BufferedReader<R>
 }
