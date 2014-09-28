@@ -1,20 +1,22 @@
-[![Build Status](https://travis-ci.org/danburkert/bytekey.svg?branch=master)](https://travis-ci.org/danburkert/bytekey) [rust-doc](http://www.rust-ci.org/danburkert/bytekey/doc)
+[![Build Status](https://travis-ci.org/danburkert/bytekey.svg?branch=master)](https://travis-ci.org/danburkert/bytekey)   [rust-doc](http://www.rust-ci.org/danburkert/bytekey/doc/bytekey)
 
-Binary encoding for Rust values which preserves lexicographic sort order. Sort-order preserving
-encoding is useful for creating keys in a sorted key-value store with byte string keys, such as
-[leveldb](https://github.com/google/leveldb). `bytekey` attempts to encode values into the
-fewest number of bytes possible while preserving ordering. Type information is *not*
-serialized alongside values, and thus the type of serialized data must be known in order to
-perform decoding (`bytekey` does not implement a self-describing format).
+# bytekey
 
-#### Supported Data Types
+Binary encoding for Rust values which preserves lexicographic sort order. Order-preserving encoding
+is useful for creating keys for sorted key-value stores with byte string typed keys, such as
+[leveldb](https://github.com/google/leveldb). `bytekey` attempts to encode values into the fewest
+number of bytes possible while preserving order guarantees. Type information is *not* serialized
+alongside values, and thus the type of serialized data must be known in order to perform decoding
+(`bytekey` does not implement a self-describing format).
+
+## Supported Data Types
 
 `bytekey` encoding currently supports all Rust primitives, strings, options, structs, enums, and
 tuples. `int` and `uint` types are variable-length encoded. Sequence (`Vec`) and map types are
 not currently supported (but could be in the future). See `Encoder` for details on the
 serialization format.
 
-#### Usage
+## Usage
 
 ```
 extern crate serialize;
@@ -24,7 +26,6 @@ use bytekey::{encode, decode};
 #[deriving(Encodable, Decodable, Show, PartialEq)]
 struct MyKey { a: uint, b: String }
 
-# fn main() {
 let a = MyKey { a: 1, b: "foo".to_string() };
 let b = MyKey { a: 2, b: "foo".to_string() };
 let c = MyKey { a: 2, b: "fooz".to_string() };
@@ -32,10 +33,9 @@ let c = MyKey { a: 2, b: "fooz".to_string() };
 assert!(encode(&a) < encode(&b));
 assert!(encode(&b) < encode(&c));
 assert_eq!(a, decode(encode(&a)).unwrap());
-# }
 ```
 
-#### Type Evolution
+## Type Evolution
 
 In general, the exact type of a serialized value must be known in order to correctly deserialize
 it. For structs and enums, the type is effectively frozen once any values of the type have been
@@ -57,6 +57,6 @@ This will allow you to seamlessly add a new variant when you need to change the 
 backwards-compatible manner (the different key types will sort seperately). If your enum has
 less than 16 variants, then the overhead is just a single byte in encoded output.
 
-#### License
+## License
 
-bytekey is licensed under the Apache License, Version 2.0. See LICENSE for full license text.
+`bytekey` is licensed under the Apache License, Version 2.0. See LICENSE for full license text.

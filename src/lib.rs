@@ -1,9 +1,9 @@
 //! [![Build Status](https://travis-ci.org/danburkert/bytekey.svg?branch=master)](https://travis-ci.org/danburkert/bytekey)
 //!
-//! Binary encoding for Rust values which preserves lexicographic sort order. Sort-order preserving
-//! encoding is useful for creating keys in a sorted key-value store with byte string keys, such as
-//! [leveldb](https://github.com/google/leveldb). `bytekey` attempts to encode values into the
-//! fewest number of bytes possible while preserving ordering. Type information is *not*
+//! Binary encoding for Rust values which preserves lexicographic sort order. Order-preserving
+//! encoding is useful for creating keys for sorted key-value stores with byte string typed keys,
+//! such as [leveldb](https://github.com/google/leveldb). `bytekey` attempts to encode values into
+//! the fewest number of bytes possible while preserving ordering. Type information is *not*
 //! serialized alongside values, and thus the type of serialized data must be known in order to
 //! perform decoding (`bytekey` does not implement a self-describing format).
 //!
