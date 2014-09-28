@@ -450,10 +450,8 @@ impl<'a> serialize::Encoder<io::IoError> for Encoder<'a> {
     fn emit_seq(&mut self, _len: uint, _f: |this: &mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
          fail!("Not yet implemented")
     }
-    fn emit_seq_elt(&mut self, _idx: uint, f: |this: &mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
-        // See https://github.com/rust-lang/rust/pull/17504 for why this is implemented currently
-        //fail!("Not yet implemented")
-        f(self)
+    fn emit_seq_elt(&mut self, _idx: uint, _f: |this: &mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
+        fail!("Not yet implemented")
     }
 
     fn emit_map(&mut self, _len: uint, _f: |&mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
