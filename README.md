@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.org/danburkert/bytekey.svg?branch=master)](https://travis-ci.org/danburkert/bytekey)   [rust-doc](http://www.rust-ci.org/danburkert/bytekey/doc/bytekey)
+[![Build Status](https://travis-ci.org/danburkert/bytekey.svg?branch=master)](https://travis-ci.org/danburkert/bytekey)
+
+[Documentation](http://rust-ci.org/danburkert/bytekey/doc/bytekey/)
 
 # bytekey
 
