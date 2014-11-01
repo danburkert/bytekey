@@ -448,20 +448,20 @@ impl<'a> serialize::Encoder<io::IoError> for Encoder<'a> {
     }
 
     fn emit_seq(&mut self, _len: uint, _f: |this: &mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
-         fail!("Not yet implemented")
+         unimplemented!()
     }
     fn emit_seq_elt(&mut self, _idx: uint, _f: |this: &mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
-        fail!("Not yet implemented")
+        unimplemented!()
     }
 
     fn emit_map(&mut self, _len: uint, _f: |&mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
-        fail!("Not yet implemented")
+        unimplemented!()
     }
     fn emit_map_elt_key(&mut self, _idx: uint, _f: |&mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
-        fail!("Not yet implemented")
+        unimplemented!()
     }
     fn emit_map_elt_val(&mut self, _idx: uint, _f: |&mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
-        fail!("Not yet implemented")
+        unimplemented!()
     }
 }
 
@@ -485,9 +485,7 @@ pub mod test {
         let mut previous = encode(&u8::MIN);
         for i in range_inclusive(u8::MIN + 1, u8::MAX) {
             let current = encode(&i);
-            if !(previous < current) {
-                fail!("{} !< {} (current {})", previous, current, i)
-            }
+            assert!(current > previous)
             previous = current;
         }
     }
@@ -497,9 +495,7 @@ pub mod test {
         let mut previous = encode(&u16::MIN);
         for i in range_inclusive(u16::MIN + 1, u16::MAX) {
             let current = encode(&i);
-            if !(previous < current) {
-                fail!("{} !< {} (current {})", previous, current, i)
-            }
+            assert!(current > previous);
             previous = current;
         }
     }
@@ -556,9 +552,7 @@ pub mod test {
         let mut previous = encode(&i8::MIN);
         for i in range_inclusive(i8::MIN + 1, i8::MAX) {
             let current = encode(&i);
-            if !(previous < current) {
-                fail!("{} !< {} (current {})", previous, current, i)
-            }
+            assert!(current > previous);
             previous = current;
         }
     }
@@ -568,9 +562,7 @@ pub mod test {
         let mut previous = encode(&i16::MIN);
         for i in range_inclusive(i16::MIN + 1, i16::MAX) {
             let current = encode(&i);
-            if !(previous < current) {
-                fail!("{} !< {} (current {})", previous, current, i)
-            }
+            assert!(current > previous);
             previous = current;
         }
     }
