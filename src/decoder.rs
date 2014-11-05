@@ -177,9 +177,10 @@ impl<R: Reader> serialize::Decoder<IoError> for Decoder<R> {
         f(self)
     }
 
-    fn read_tuple<T>(&mut self, _f: |&mut Decoder<R>, uint| -> DecodeResult<T>) -> DecodeResult<T> {
-        // Waiting on rust-lang/rust#17595
-        unimplemented!()
+    fn read_tuple<T>(&mut self,
+                     _len: uint,
+                     f: |&mut Decoder<R>| -> DecodeResult<T>) -> DecodeResult<T> {
+        f(self)
     }
     fn read_tuple_arg<T>(&mut self,
                          _idx: uint,
@@ -189,9 +190,10 @@ impl<R: Reader> serialize::Decoder<IoError> for Decoder<R> {
     }
     fn read_tuple_struct<T>(&mut self,
                             _name: &str,
-                            f: |&mut Decoder<R>, uint| -> DecodeResult<T>)
+                            len: uint,
+                            f: |&mut Decoder<R>| -> DecodeResult<T>)
                             -> DecodeResult<T> {
-        self.read_tuple(f)
+        self.read_tuple(len, f)
     }
     fn read_tuple_struct_arg<T>(&mut self,
                                 idx: uint,
@@ -382,7 +384,7 @@ mod test {
         val == decode(encode(&val)).unwrap()
     }
 
-    // #[quickcheck]
+     #[quickcheck]
     fn check_tuple(val: (uint, char, String)) -> bool {
         val == decode(encode(&val)).unwrap()
     }
