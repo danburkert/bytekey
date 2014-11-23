@@ -240,11 +240,12 @@ mod test {
     extern crate quickcheck_macros;
     extern crate quickcheck;
 
+    use std::{f32, f64};
+    use std::num::Int;
+
+    use decoder::decode;
     use encoder::encode;
     use encoder::test::{TestStruct, TestEnum};
-    use decoder::decode;
-    use std::{f32, f64};
-    use std::num::pow;
 
     #[quickcheck]
     fn check_u8(val: u8) -> bool {
@@ -269,16 +270,16 @@ mod test {
     #[test]
     fn test_uint() {
         let values = vec![
-            0u, pow(2u, 0),
-            pow(2u, 4)  - 1, pow(2u, 4),
-            pow(2u, 12) - 1, pow(2u, 12),
-            pow(2u, 20) - 1, pow(2u, 20),
-            pow(2u, 28) - 1, pow(2u, 28),
-            pow(2u, 36) - 1, pow(2u, 36),
-            pow(2u, 44) - 1, pow(2u, 44),
-            pow(2u, 52) - 1, pow(2u, 52),
-            pow(2u, 60) - 1, pow(2u, 60),
-            pow(2u, 64) - 1,
+            0u, 2u.pow(0),
+            2u.pow(4)  - 1, 2u.pow(4),
+            2u.pow(12) - 1, 2u.pow(12),
+            2u.pow(20) - 1, 2u.pow(20),
+            2u.pow(28) - 1, 2u.pow(28),
+            2u.pow(36) - 1, 2u.pow(36),
+            2u.pow(44) - 1, 2u.pow(44),
+            2u.pow(52) - 1, 2u.pow(52),
+            2u.pow(60) - 1, 2u.pow(60),
+            2u.pow(64) - 1,
         ];
         for val in values.iter() {
             assert_eq!(*val, decode(encode(val)).unwrap());
@@ -308,16 +309,16 @@ mod test {
     #[test]
     fn test_int() {
         let values = vec![
-            -pow(2i, 0), 0i, pow(2i, 0),
-            -pow(2i, 3)  - 1, -pow(2i, 3),  pow(2i, 3)  - 1, pow(2i, 3),
-            -pow(2i, 11) - 1, -pow(2i, 11), pow(2i, 11) - 1, pow(2i, 11),
-            -pow(2i, 19) - 1, -pow(2i, 19), pow(2i, 19) - 1, pow(2i, 19),
-            -pow(2i, 27) - 1, -pow(2i, 27), pow(2i, 27) - 1, pow(2i, 27),
-            -pow(2i, 35) - 1, -pow(2i, 35), pow(2i, 35) - 1, pow(2i, 35),
-            -pow(2i, 43) - 1, -pow(2i, 43), pow(2i, 43) - 1, pow(2i, 43),
-            -pow(2i, 51) - 1, -pow(2i, 51), pow(2i, 51) - 1, pow(2i, 51),
-            -pow(2i, 59) - 1, -pow(2i, 59), pow(2i, 59) - 1, pow(2i, 59),
-            -pow(2i, 63), pow(2i, 63) - 1
+            -2i.pow(0), 0i, 2i.pow(0),
+            -2i.pow(3)  - 1, -2i.pow(3),  2i.pow(3)  - 1, 2i.pow(3),
+            -2i.pow(11) - 1, -2i.pow(11), 2i.pow(11) - 1, 2i.pow(11),
+            -2i.pow(19) - 1, -2i.pow(19), 2i.pow(19) - 1, 2i.pow(19),
+            -2i.pow(27) - 1, -2i.pow(27), 2i.pow(27) - 1, 2i.pow(27),
+            -2i.pow(35) - 1, -2i.pow(35), 2i.pow(35) - 1, 2i.pow(35),
+            -2i.pow(43) - 1, -2i.pow(43), 2i.pow(43) - 1, 2i.pow(43),
+            -2i.pow(51) - 1, -2i.pow(51), 2i.pow(51) - 1, 2i.pow(51),
+            -2i.pow(59) - 1, -2i.pow(59), 2i.pow(59) - 1, 2i.pow(59),
+            -2i.pow(63), 2i.pow(63) - 1
         ];
         for val in values.iter() {
             assert_eq!(*val, decode(encode(val)).unwrap());

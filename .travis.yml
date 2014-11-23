@@ -1,10 +1,10 @@
 env:
   global:
-    - secure: iX2HlSUSFNaFW40BLLyRKT8MAV7yhMaO5u7UTpPWiJeGugW3/esUhL2CXfPO3EQrm1F7it1hdbF31NMZA1SgGqYtwhT5x4OaC0iuKFwQcEqY0EujqAh3b1mWolrTvW2Eivj501BvbCjcvFN8IQQ7TSSxzX+10M5j1ex7nSt+XuE=
+    - secure: v/dNYWxhqBBBG2qh2huWUrCbsnrmVXmpwRvxTvgvwJ46cXAC2kztLavplX5k8FXmDkCoTHOt3y0O8uP6WgGuRtZ42zGwyfFN8l8hO+deWFWQwrhgBi7J2vnFZZA2fGXOIXkfNVmyZ1KcMN5aebrqneTOHgIpx7Npvaub1GtPcIg=
 language: rust
 script:
   - cargo build -v
   - cargo test -v
   - cargo doc
 after_script:
-  - mv target/doc . && curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
+    - curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
