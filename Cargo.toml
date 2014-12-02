@@ -10,8 +10,6 @@ repository = "https://github.com/danburkert/bytekey.git"
 readme = "README.md"
 keywords = ["encoding", "serialization", "library"]
 
-[dev-dependencies.quickcheck]
-git = "https://github.com/BurntSushi/quickcheck.git"
-
-[dev-dependencies.quickcheck_macros]
-git = "https://github.com/BurntSushi/quickcheck.git"
+[dev-dependencies]
+  quickcheck = "*"
+  quickcheck_macros = "*"

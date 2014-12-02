@@ -109,7 +109,7 @@ pub fn encode<'a, T : Encodable<Encoder<'a>, io::IoError>>(object: &T) -> Vec<u8
     let mut writer = MemWriter::new();
     let mut encoder = unsafe { transmute(Encoder::new(&mut writer)) };
     object.encode(&mut encoder).unwrap();
-    writer.unwrap()
+    writer.into_inner()
 }
 
 impl<'a> Encoder<'a> {
