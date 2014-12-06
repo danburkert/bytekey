@@ -372,7 +372,7 @@ mod test {
 
     #[quickcheck]
     fn check_string(val: String) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode::<String>(encode(&val)).unwrap()
     }
 
     #[quickcheck]

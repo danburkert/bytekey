@@ -92,7 +92,7 @@ use std::num::SignedInt;
 /// containing) byte array in order-preserving format is 1 bit per byte, or 9 bytes of output for
 /// every 8 bytes of input.
 pub struct Encoder<'a> {
-    writer: &'a mut io::Writer+'a,
+    writer: &'a mut (io::Writer+'a),
 }
 
 /// Encode data into a byte vector.
