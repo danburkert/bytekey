@@ -1,5 +1,4 @@
-use serialize;
-use serialize::Encodable;
+use rustc_serialize::{self, Encodable};
 use std::{i8, i16, i32, i64};
 use std::io::MemWriter;
 use std::io;
@@ -16,46 +15,46 @@ use std::num::SignedInt;
 ///
 /// #### Supported Data Types
 ///
-/// ##### Unsigned Integers
+/// ##### Unsigned isizeegers
 ///
-/// `u8`, `u16`, `u32`, and `u64` are encoded into 1, 2, 4, and 8 bytes of output, respectively.
+/// `u8`, `u16`, `u32`, and `u64` are encoded isizeo 1, 2, 4, and 8 bytes of output, respectively.
 /// Order is preserved by encoding the bytes in big-endian (most-significant bytes first) format.
 ///
-/// `uint` is variable-length encoded into between 1 and 9 bytes.  Smaller magnitude values (closer
-/// to 0) will encode into fewer bytes. See `emit_var_u64` for details on serialization
+/// `usize` is variable-length encoded isizeo between 1 and 9 bytes.  Smaller magnitude values (closer
+/// to 0) will encode isizeo fewer bytes. See `emit_var_u64` for details on serialization
 /// size and format.
 ///
-/// ##### Signed Integers
+/// ##### Signed isizeegers
 ///
-/// `i8`, `i16`, `i32`, and `i64` are encoded into 1, 2, 4, and 8 bytes of output, respectively.
+/// `i8`, `i16`, `i32`, and `i64` are encoded isizeo 1, 2, 4, and 8 bytes of output, respectively.
 /// Order is preserved by taking the bitwise complement of the value, and encoding the resulting
 /// bytes in big-endian format.
 ///
-/// `int` is variable-length encoded into between 1 and 9 bytes. Smaller magnitude values (closer
-/// to 0) will encode into fewer bytes. See `emit_var_i64` for details on serialization
+/// `isize` is variable-length encoded isizeo between 1 and 9 bytes. Smaller magnitude values (closer
+/// to 0) will encode isizeo fewer bytes. See `emit_var_i64` for details on serialization
 /// size and format.
 ///
-/// ##### Floating Point Numbers
+/// ##### Floating Poisize Numbers
 ///
-/// `f32` and `f64` are encoded into 4 and 8 bytes of output, respectively. Order is preserved
-/// by encoding the value, or the bitwise complement of the value if negative, into bytes in
+/// `f32` and `f64` are encoded isizeo 4 and 8 bytes of output, respectively. Order is preserved
+/// by encoding the value, or the bitwise complement of the value if negative, isizeo bytes in
 /// big-endian format. `NAN` values will sort after all other values. In general, it is
-/// unwise to use IEEE 754 floating point values in keys, because rounding errors are pervasive.
+/// unwise to use IEEE 754 floating poisize values in keys, because rounding errors are pervasive.
 /// It is typically hard or impossible to use an approximate 'epsilon' approach when using keys for
 /// lookup.
 ///
 /// ##### Characters
 ///
-/// Characters are serialized into between 1 and 4 bytes of output.
+/// Characters are serialized isizeo between 1 and 4 bytes of output.
 ///
 /// ##### Booleans
 ///
-/// Booleans are serialized into a single byte of output. `false` values will sort before `true`
+/// Booleans are serialized isizeo a single byte of output. `false` values will sort before `true`
 /// values.
 ///
 /// ##### Strings
 ///
-/// Strings are encoded into their natural UTF8 representation plus a single null byte suffix.
+/// Strings are encoded isizeo their natural UTF8 representation plus a single null byte suffix.
 /// In general, strings should not contain null bytes. The encoder will not check for null bytes,
 /// however their presence will break lexicographic sorting. The only exception to this rule is
 /// the case where the string is the final (or only) component of the key. If the string field
@@ -74,7 +73,7 @@ use std::num::SignedInt;
 ///
 /// ##### Enums
 ///
-/// Enums are encoded with a variable-length unsigned-integer variant tag, plus the consituent
+/// Enums are encoded with a variable-length unsigned-isizeeger variant tag, plus the consituent
 /// fields in the case of an enum-struct. The tag adds an overhead of between 1 and 9 bytes (it
 /// will be a single byte for up to 16 variants). This encoding allows more enum variants to be
 /// added in a backwards-compatible manner, as long as variants are not removed and the variant
@@ -95,21 +94,23 @@ pub struct Encoder<'a> {
     writer: &'a mut (io::Writer+'a),
 }
 
-/// Encode data into a byte vector.
+/// Encode data isizeo a byte vector.
 ///
 /// #### Usage
 ///
 /// ```
 /// # use bytekey::encode;
-/// assert_eq!(vec!(0x00, 0x00, 0x00, 0x2A), encode(&42u32));
-/// assert_eq!(vec!(0x66, 0x69, 0x7A, 0x7A, 0x62, 0x75, 0x7A, 0x7A, 0x00), encode(&"fizzbuzz"));
-/// assert_eq!(vec!(0x2A, 0x66, 0x69, 0x7A, 0x7A, 0x00), encode(&(42u8, "fizz")));
+/// assert_eq!(Ok(vec!(0x00, 0x00, 0x00, 0x2A)), encode(&42u32));
+/// assert_eq!(Ok(vec!(0x66, 0x69, 0x7A, 0x7A, 0x62, 0x75, 0x7A, 0x7A, 0x00)), encode(&"fizzbuzz"));
+/// assert_eq!(Ok(vec!(0x2A, 0x66, 0x69, 0x7A, 0x7A, 0x00)), encode(&(42u8, "fizz")));
 /// ```
-pub fn encode<'a, T : Encodable<Encoder<'a>, io::IoError>>(object: &T) -> Vec<u8>  {
+pub fn encode<'a, T : Encodable>(object: &T) -> Result<Vec<u8>, io::IoError>  {
     let mut writer = MemWriter::new();
-    let mut encoder = unsafe { transmute(Encoder::new(&mut writer)) };
-    object.encode(&mut encoder).unwrap();
-    writer.into_inner()
+    {
+        let mut encoder = Encoder::new(&mut writer);
+        try!(object.encode(&mut encoder));
+    }
+    Ok(writer.into_inner())
 }
 
 impl<'a> Encoder<'a> {
@@ -119,7 +120,7 @@ impl<'a> Encoder<'a> {
         Encoder { writer: writer }
     }
 
-    /// Encode a `u64` into a variable number of bytes.
+    /// Encode a `u64` isizeo a variable number of bytes.
     ///
     /// The variable-length encoding scheme uses between 1 and 9 bytes depending on the value.
     /// Smaller magnitude (closer to 0) `u64`s will encode to fewer bytes.
@@ -201,7 +202,7 @@ impl<'a> Encoder<'a> {
         }
     }
 
-    /// Encode an `i64` into a variable number of bytes.
+    /// Encode an `i64` isizeo a variable number of bytes.
     ///
     /// The variable-length encoding scheme uses between 1 and 9 bytes depending on the value.
     /// Smaller magnitude (closer to 0) `i64`s will encode to fewer bytes.
@@ -313,24 +314,27 @@ impl<'a> Encoder<'a> {
 /// The error type returned by all encoding operations supported by `Encoder`.
 pub type EncodeResult = io::IoResult<()>;
 
-impl<'a> serialize::Encoder<io::IoError> for Encoder<'a> {
+impl<'a> rustc_serialize::Encoder for Encoder<'a> {
+
+    type Error = io::IoError;
+
     fn emit_nil(&mut self) -> EncodeResult { self.writer.write([].as_slice()) }
 
     fn emit_u8(&mut self, v: u8) -> EncodeResult  { self.writer.write_u8(v) }
     fn emit_u16(&mut self, v: u16) -> EncodeResult { self.writer.write_be_u16(v) }
     fn emit_u32(&mut self, v: u32) -> EncodeResult { self.writer.write_be_u32(v) }
     fn emit_u64(&mut self, v: u64) -> EncodeResult { self.writer.write_be_u64(v) }
-    fn emit_uint(&mut self, v: uint) -> EncodeResult { self.emit_var_u64(v as u64) }
+    fn emit_usize(&mut self, v: usize) -> EncodeResult { self.emit_var_u64(v as u64) }
 
     fn emit_i8(&mut self, v: i8) -> EncodeResult  { self.writer.write_i8(v ^ i8::MIN) }
     fn emit_i16(&mut self, v: i16) -> EncodeResult { self.writer.write_be_i16(v ^ i16::MIN) }
     fn emit_i32(&mut self, v: i32) -> EncodeResult { self.writer.write_be_i32(v ^ i32::MIN) }
     fn emit_i64(&mut self, v: i64) -> EncodeResult { self.writer.write_be_i64(v ^ i64::MIN) }
-    fn emit_int(&mut self, v: int) -> EncodeResult { self.emit_var_i64(v as i64) }
+    fn emit_isize(&mut self, v: isize) -> EncodeResult { self.emit_var_i64(v as i64) }
 
     fn emit_bool(&mut self, v: bool) -> EncodeResult { self.writer.write_u8(if v { 1 } else { 0 }) }
 
-    /// Encode an `f32` into sortable bytes.
+    /// Encode an `f32` isizeo sortable bytes.
     ///
     /// `NaN`s will sort greater than positive infinity. -0.0 will sort directly before +0.0.
     ///
@@ -341,7 +345,7 @@ impl<'a> serialize::Encoder<io::IoError> for Encoder<'a> {
         self.writer.write_be_i32(val ^ t)
     }
 
-    /// Encode an `f64` into sortable bytes.
+    /// Encode an `f64` isizeo sortable bytes.
     ///
     /// `NaN`s will sort greater than positive infinity. -0.0 will sort directly before +0.0.
     ///
@@ -361,107 +365,107 @@ impl<'a> serialize::Encoder<io::IoError> for Encoder<'a> {
         self.writer.write_u8(0u8)
     }
 
-    fn emit_enum(&mut self, _name: &str, f: |&mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
+    fn emit_enum<F>(&mut self, _name: &str, f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         f(self)
     }
-    fn emit_enum_variant(&mut self,
-                         _name: &str,
-                         id: uint,
-                         _len: uint,
-                         f: |&mut Encoder<'a>| -> EncodeResult)
-                         -> EncodeResult {
-        try!(self.emit_uint(id));
+    fn emit_enum_variant<F>(&mut self,
+                            _name: &str,
+                            id: usize,
+                            _len: usize,
+                            f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+        try!(self.emit_usize(id));
         f(self)
     }
-
-    fn emit_enum_variant_arg(&mut self,
-                             _idx: uint,
-                             f: |&mut Encoder<'a>| -> EncodeResult)
-                             -> EncodeResult {
+    fn emit_enum_variant_arg<F>(&mut self,
+                                _idx: usize,
+                                f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         f(self)
     }
-
-    fn emit_enum_struct_variant(&mut self,
-                                _name: &str,
-                                id: uint,
-                                _len: uint,
-                                f: |&mut Encoder<'a>| -> EncodeResult)
-                                -> EncodeResult {
-        try!(self.emit_uint(id));
+    fn emit_enum_struct_variant<F>(&mut self,
+                                   _name: &str,
+                                   id: usize,
+                                   _len: usize,
+                                   f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+        try!(self.emit_usize(id));
         f(self)
     }
-
-    fn emit_enum_struct_variant_field(&mut self,
-                                      _name: &str,
-                                      _idx: uint,
-                                      f: |&mut Encoder<'a>| -> EncodeResult)
-                                      -> EncodeResult {
-        f(self)
-    }
-    fn emit_struct(&mut self,
-                   _name: &str,
-                   _len: uint,
-                   f: |&mut Encoder<'a>| -> EncodeResult)
-                   -> EncodeResult {
-        f(self)
-    }
-    fn emit_struct_field(&mut self,
-                         _name: &str,
-                         _idx: uint,
-                         f: |&mut Encoder<'a>| -> EncodeResult)
-                         -> EncodeResult {
+    fn emit_enum_struct_variant_field<F>(&mut self,
+                                         _name: &str,
+                                         _idx: usize,
+                                         f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         f(self)
     }
 
-    fn emit_tuple(&mut self, _len: uint, f: |&mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
+    fn emit_struct<F>(&mut self, _name: &str, _len: usize, f: F)
+                      -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         f(self)
     }
-    fn emit_tuple_arg(&mut self,
-                      _idx: uint,
-                      f: |&mut Encoder<'a>| -> EncodeResult)
-                      -> EncodeResult {
+    fn emit_struct_field<F>(&mut self, _name: &str, _idx: usize, f: F)
+                            -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         f(self)
     }
 
-    fn emit_tuple_struct(&mut self,
-                         name: &str,
-                         len: uint,
-                         f: |&mut Encoder<'a>| -> EncodeResult)
-                         -> EncodeResult {
+    fn emit_tuple<F>(&mut self, _len: usize, f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+        f(self)
+    }
+    fn emit_tuple_arg<F>(&mut self, _idx: usize, f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+        f(self)
+    }
+    fn emit_tuple_struct<F>(&mut self,
+                            name: &str,
+                            len: usize,
+                            f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         self.emit_struct(name, len, f)
     }
-    fn emit_tuple_struct_arg(&mut self,
-                             idx: uint,
-                             f: |&mut Encoder<'a>| -> EncodeResult)
-                             -> EncodeResult {
+    fn emit_tuple_struct_arg<F>(&mut self,
+                                idx: usize,
+                                f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         self.emit_struct_field("", idx, f)
     }
 
-    fn emit_option(&mut self, f: |&mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
+    fn emit_option<F>(&mut self, f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         f(self)
     }
-    fn emit_option_none(&mut self) -> EncodeResult {
+    fn emit_option_none(&mut self) -> Result<(), io::IoError> {
         self.emit_bool(false)
     }
-    fn emit_option_some(&mut self, f: |&mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
+    fn emit_option_some<F>(&mut self, f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         try!(self.emit_bool(true));
         f(self)
     }
 
-    fn emit_seq(&mut self, _len: uint, _f: |this: &mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
+    fn emit_seq<F>(&mut self, _len: usize, _f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
          unimplemented!()
     }
-    fn emit_seq_elt(&mut self, _idx: uint, _f: |this: &mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
+    fn emit_seq_elt<F>(&mut self, _idx: usize, _f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         unimplemented!()
     }
 
-    fn emit_map(&mut self, _len: uint, _f: |&mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
+    fn emit_map<F>(&mut self, _len: usize, _f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         unimplemented!()
     }
-    fn emit_map_elt_key(&mut self, _idx: uint, _f: |&mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
+    fn emit_map_elt_key<F>(&mut self, _idx: usize, _f: F) -> Result<(), io::IoError>
+            where F: FnMut(&mut Self) -> Result<(), io::IoError> {
         unimplemented!()
     }
-    fn emit_map_elt_val(&mut self, _idx: uint, _f: |&mut Encoder<'a>| -> EncodeResult) -> EncodeResult {
+    fn emit_map_elt_val<F>(&mut self, _idx: usize, _f: F) -> Result<(), io::IoError>
+            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         unimplemented!()
     }
 }
@@ -469,13 +473,13 @@ impl<'a> serialize::Encoder<io::IoError> for Encoder<'a> {
 #[cfg(test)]
 pub mod test {
 
-    #[phase(plugin)]
+    #[plugin]
     extern crate quickcheck_macros;
     extern crate quickcheck;
 
     use std::{u8, u16, i8, i16, f32, f64};
     use std::iter::range_inclusive;
-    use std::num::{FloatMath, Int};
+    use std::num::{Int, Float};
     use std::rand::Rng;
 
     use quickcheck::{Arbitrary, Gen};
@@ -484,19 +488,19 @@ pub mod test {
 
     #[test]
     fn test_u8() {
-        let mut previous = encode(&u8::MIN);
+        let mut previous = encode(&u8::MIN).unwrap();
         for i in range_inclusive(u8::MIN + 1, u8::MAX) {
-            let current = encode(&i);
-            assert!(current > previous)
+            let current = encode(&i).unwrap();
+            assert!(current > previous);
             previous = current;
         }
     }
 
     #[test]
     fn test_u16() {
-        let mut previous = encode(&u16::MIN);
+        let mut previous = encode(&u16::MIN).unwrap();
         for i in range_inclusive(u16::MIN + 1, u16::MAX) {
-            let current = encode(&i);
+            let current = encode(&i).unwrap();
             assert!(current > previous);
             previous = current;
         }
@@ -504,56 +508,56 @@ pub mod test {
 
     #[quickcheck]
     fn check_u32(a: u32, b: u32) -> bool {
-        a.cmp(&b) == encode(&a).cmp(&encode(&b))
+        a.cmp(&b) == encode(&a).unwrap().cmp(&encode(&b).unwrap())
     }
 
     #[quickcheck]
     fn check_u64(a: u64, b: u64) -> bool {
-        a.cmp(&b) == encode(&a).cmp(&encode(&b))
+        a.cmp(&b) == encode(&a).unwrap().cmp(&encode(&b).unwrap())
     }
 
     #[test]
     fn test_var_u64() {
-        assert_eq!(vec!(0x00), encode(&0u));
-        assert_eq!(vec!(0x01), encode(&2u.pow(0)));
+        assert_eq!(vec!(0x00), encode(&0us).unwrap());
+        assert_eq!(vec!(0x01), encode(&2us.pow(0)).unwrap());
 
-        assert_eq!(vec!(0x0F), encode(&(2u.pow(4) - 1)));
-        assert_eq!(vec!(0x10, 0x10), encode(&2u.pow(4)));
+        assert_eq!(vec!(0x0F), encode(&(2us.pow(4) - 1)).unwrap());
+        assert_eq!(vec!(0x10, 0x10), encode(&2us.pow(4)).unwrap());
 
-        assert_eq!(vec!(0x1F, 0xFF), encode(&(2u.pow(12) - 1)));
-        assert_eq!(vec!(0x20, 0x10, 0x00), encode(&2u.pow(12)));
+        assert_eq!(vec!(0x1F, 0xFF), encode(&(2us.pow(12) - 1)).unwrap());
+        assert_eq!(vec!(0x20, 0x10, 0x00), encode(&2us.pow(12)).unwrap());
 
-        assert_eq!(vec!(0x2F, 0xFF, 0xFF), encode(&(2u.pow(20) - 1)));
-        assert_eq!(vec!(0x30, 0x10, 0x00, 0x00), encode(&2u.pow(20)));
+        assert_eq!(vec!(0x2F, 0xFF, 0xFF), encode(&(2us.pow(20) - 1)).unwrap());
+        assert_eq!(vec!(0x30, 0x10, 0x00, 0x00), encode(&2us.pow(20)).unwrap());
 
-        assert_eq!(vec!(0x3F, 0xFF, 0xFF, 0xFF), encode(&(2u.pow(28) - 1)));
-        assert_eq!(vec!(0x40, 0x10, 0x00, 0x00, 0x00), encode(&2u.pow(28)));
+        assert_eq!(vec!(0x3F, 0xFF, 0xFF, 0xFF), encode(&(2us.pow(28) - 1)).unwrap());
+        assert_eq!(vec!(0x40, 0x10, 0x00, 0x00, 0x00), encode(&2us.pow(28)).unwrap());
 
-        assert_eq!(vec!(0x4F, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2u.pow(36) - 1)));
-        assert_eq!(vec!(0x50, 0x10, 0x00, 0x00, 0x00, 0x00), encode(&2u.pow(36)));
+        assert_eq!(vec!(0x4F, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2us.pow(36) - 1)).unwrap());
+        assert_eq!(vec!(0x50, 0x10, 0x00, 0x00, 0x00, 0x00), encode(&2us.pow(36)).unwrap());
 
-        assert_eq!(vec!(0x5F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2u.pow(44) - 1)));
-        assert_eq!(vec!(0x60, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2u.pow(44)));
+        assert_eq!(vec!(0x5F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2us.pow(44) - 1)).unwrap());
+        assert_eq!(vec!(0x60, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2us.pow(44)).unwrap());
 
-        assert_eq!(vec!(0x6F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2u.pow(52) - 1)));
-        assert_eq!(vec!(0x70, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2u.pow(52)));
+        assert_eq!(vec!(0x6F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2us.pow(52) - 1)).unwrap());
+        assert_eq!(vec!(0x70, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2us.pow(52)).unwrap());
 
-        assert_eq!(vec!(0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2u.pow(60) - 1)));
-        assert_eq!(vec!(0x80, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2u.pow(60)));
+        assert_eq!(vec!(0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2us.pow(60) - 1)).unwrap());
+        assert_eq!(vec!(0x80, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2us.pow(60)).unwrap());
 
-        assert_eq!(vec!(0x80, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2u.pow(64) - 1)));
+        assert_eq!(vec!(0x80, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2us.pow(64) - 1)).unwrap());
     }
 
     #[quickcheck]
-    fn check_uint(a: uint, b: uint) -> bool {
-        a.cmp(&b) == encode(&a).cmp(&encode(&b))
+    fn check_usize(a: usize, b: usize) -> bool {
+        a.cmp(&b) == encode(&a).unwrap().cmp(&encode(&b).unwrap())
     }
 
     #[test]
     fn test_i8() {
-        let mut previous = encode(&i8::MIN);
+        let mut previous = encode(&i8::MIN).unwrap();
         for i in range_inclusive(i8::MIN + 1, i8::MAX) {
-            let current = encode(&i);
+            let current = encode(&i).unwrap();
             assert!(current > previous);
             previous = current;
         }
@@ -561,9 +565,9 @@ pub mod test {
 
     #[test]
     fn test_i16() {
-        let mut previous = encode(&i16::MIN);
+        let mut previous = encode(&i16::MIN).unwrap();
         for i in range_inclusive(i16::MIN + 1, i16::MAX) {
-            let current = encode(&i);
+            let current = encode(&i).unwrap();
             assert!(current > previous);
             previous = current;
         }
@@ -571,174 +575,174 @@ pub mod test {
 
     #[quickcheck]
     fn check_i32(a: i32, b: i32) -> bool {
-        a.cmp(&b) == encode(&a).cmp(&encode(&b))
+        a.cmp(&b) == encode(&a).unwrap().cmp(&encode(&b).unwrap())
     }
 
     #[quickcheck]
     fn check_i64(a: i64, b: i64) -> bool {
-        a.cmp(&b) == encode(&a).cmp(&encode(&b))
+        a.cmp(&b) == encode(&a).unwrap().cmp(&encode(&b).unwrap())
     }
 
     #[test]
     fn test_pos_var_i64() {
-        assert_eq!(vec!(0x80), encode(&0i));
-        assert_eq!(vec!(0x81), encode(&2i.pow(0)));
+        assert_eq!(vec!(0x80), encode(&0is).unwrap());
+        assert_eq!(vec!(0x81), encode(&2is.pow(0)).unwrap());
 
-        assert_eq!(vec!(0x87), encode(&(2i.pow(3) - 1)));
-        assert_eq!(vec!(0x88, 0x08), encode(&2i.pow(3)));
+        assert_eq!(vec!(0x87), encode(&(2is.pow(3) - 1)).unwrap());
+        assert_eq!(vec!(0x88, 0x08), encode(&2is.pow(3)).unwrap());
 
-        assert_eq!(vec!(0x8F, 0xFF), encode(&(2i.pow(11) - 1)));
-        assert_eq!(vec!(0x90, 0x08, 0x00), encode(&2i.pow(11)));
+        assert_eq!(vec!(0x8F, 0xFF), encode(&(2is.pow(11) - 1)).unwrap());
+        assert_eq!(vec!(0x90, 0x08, 0x00), encode(&2is.pow(11)).unwrap());
 
-        assert_eq!(vec!(0x97, 0xFF, 0xFF), encode(&(2i.pow(19) - 1)));
-        assert_eq!(vec!(0x98, 0x08, 0x00, 0x00), encode(&2i.pow(19)));
+        assert_eq!(vec!(0x97, 0xFF, 0xFF), encode(&(2is.pow(19) - 1)).unwrap());
+        assert_eq!(vec!(0x98, 0x08, 0x00, 0x00), encode(&2is.pow(19)).unwrap());
 
-        assert_eq!(vec!(0x9F, 0xFF, 0xFF, 0xFF), encode(&(2i.pow(27) - 1)));
-        assert_eq!(vec!(0xA0, 0x08, 0x00, 0x00, 0x00), encode(&2i.pow(27)));
+        assert_eq!(vec!(0x9F, 0xFF, 0xFF, 0xFF), encode(&(2is.pow(27) - 1)).unwrap());
+        assert_eq!(vec!(0xA0, 0x08, 0x00, 0x00, 0x00), encode(&2is.pow(27)).unwrap());
 
-        assert_eq!(vec!(0xA7, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2i.pow(35) - 1)));
-        assert_eq!(vec!(0xA8, 0x08, 0x00, 0x00, 0x00, 0x00), encode(&2i.pow(35)));
+        assert_eq!(vec!(0xA7, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2is.pow(35) - 1)).unwrap());
+        assert_eq!(vec!(0xA8, 0x08, 0x00, 0x00, 0x00, 0x00), encode(&2is.pow(35)).unwrap());
 
-        assert_eq!(vec!(0xAF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2i.pow(43) - 1)));
-        assert_eq!(vec!(0xB0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2i.pow(43)));
+        assert_eq!(vec!(0xAF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2is.pow(43) - 1)).unwrap());
+        assert_eq!(vec!(0xB0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2is.pow(43)).unwrap());
 
-        assert_eq!(vec!(0xB7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2i.pow(51) - 1)));
-        assert_eq!(vec!(0xB8, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2i.pow(51)));
+        assert_eq!(vec!(0xB7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2is.pow(51) - 1)).unwrap());
+        assert_eq!(vec!(0xB8, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2is.pow(51)).unwrap());
 
-        assert_eq!(vec!(0xBF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2i.pow(59) - 1)));
-        assert_eq!(vec!(0xC0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2i.pow(59)));
+        assert_eq!(vec!(0xBF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2is.pow(59) - 1)).unwrap());
+        assert_eq!(vec!(0xC0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2is.pow(59)).unwrap());
 
-        assert_eq!(vec!(0xC0, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2i.pow(63) - 1)));
+        assert_eq!(vec!(0xC0, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2is.pow(63) - 1)).unwrap());
     }
 
     #[test]
     fn test_neg_var_i64() {
-        assert_eq!(vec!(0x7F), encode(&(0i - 1)));
+        assert_eq!(vec!(0x7F), encode(&(0is - 1)).unwrap());
 
-        assert_eq!(vec!(0x78), encode(&-2i.pow(3)));
-        assert_eq!(vec!(0x77, 0xF7), encode(&(-2i.pow(3) - 1)));
+        assert_eq!(vec!(0x78), encode(&-2is.pow(3)).unwrap());
+        assert_eq!(vec!(0x77, 0xF7), encode(&(-2is.pow(3) - 1)).unwrap());
 
-        assert_eq!(vec!(0x70, 0x00), encode(&-2i.pow(11)));
-        assert_eq!(vec!(0x6F, 0xF7, 0xFF), encode(&(-2i.pow(11) - 1)));
+        assert_eq!(vec!(0x70, 0x00), encode(&-2is.pow(11)).unwrap());
+        assert_eq!(vec!(0x6F, 0xF7, 0xFF), encode(&(-2is.pow(11) - 1)).unwrap());
 
-        assert_eq!(vec!(0x68, 0x00, 0x00), encode(&-2i.pow(19)));
-        assert_eq!(vec!(0x67, 0xF7, 0xFF, 0xFF), encode(&(-2i.pow(19) - 1)));
+        assert_eq!(vec!(0x68, 0x00, 0x00), encode(&-2is.pow(19)).unwrap());
+        assert_eq!(vec!(0x67, 0xF7, 0xFF, 0xFF), encode(&(-2is.pow(19) - 1)).unwrap());
 
-        assert_eq!(vec!(0x60, 0x00, 0x00, 0x00), encode(&-2i.pow(27)));
-        assert_eq!(vec!(0x5F, 0xF7, 0xFF, 0xFF, 0xFF), encode(&(-2i.pow(27) - 1)));
+        assert_eq!(vec!(0x60, 0x00, 0x00, 0x00), encode(&-2is.pow(27)).unwrap());
+        assert_eq!(vec!(0x5F, 0xF7, 0xFF, 0xFF, 0xFF), encode(&(-2is.pow(27) - 1)).unwrap());
 
-        assert_eq!(vec!(0x58, 0x00, 0x00, 0x00, 0x00), encode(&-2i.pow(35)));
-        assert_eq!(vec!(0x57, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2i.pow(35) - 1)));
+        assert_eq!(vec!(0x58, 0x00, 0x00, 0x00, 0x00), encode(&-2is.pow(35)).unwrap());
+        assert_eq!(vec!(0x57, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2is.pow(35) - 1)).unwrap());
 
-        assert_eq!(vec!(0x50, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2i.pow(43)));
-        assert_eq!(vec!(0x4F, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2i.pow(43) - 1)));
+        assert_eq!(vec!(0x50, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2is.pow(43)).unwrap());
+        assert_eq!(vec!(0x4F, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2is.pow(43) - 1)).unwrap());
 
-        assert_eq!(vec!(0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2i.pow(51)));
-        assert_eq!(vec!(0x47, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2i.pow(51) - 1)));
+        assert_eq!(vec!(0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2is.pow(51)).unwrap());
+        assert_eq!(vec!(0x47, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2is.pow(51) - 1)).unwrap());
 
-        assert_eq!(vec!(0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2i.pow(59)));
-        assert_eq!(vec!(0x3F, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2i.pow(59) - 1)));
+        assert_eq!(vec!(0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2is.pow(59)).unwrap());
+        assert_eq!(vec!(0x3F, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2is.pow(59) - 1)).unwrap());
 
-        assert_eq!(vec!(0x3F, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2i.pow(63)));
+        assert_eq!(vec!(0x3F, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2is.pow(63)).unwrap());
     }
 
     #[quickcheck]
-    fn check_int(a: int, b: int) -> bool {
-        a.cmp(&b) == encode(&a).cmp(&encode(&b))
+    fn check_isize(a: isize, b: isize) -> bool {
+        a.cmp(&b) == encode(&a).unwrap().cmp(&encode(&b).unwrap())
     }
 
     #[quickcheck]
     fn check_f32(a: f32, b: f32) -> bool {
-        a.partial_cmp(&b) == encode(&a).partial_cmp(&encode(&b))
-            && a.partial_cmp(&b) == encode(&a).partial_cmp(&encode(&(b.next_after(a))))
-            && b.partial_cmp(&a) == encode(&b).partial_cmp(&encode(&(a.next_after(b))))
+        a.partial_cmp(&b) == encode(&a).unwrap().partial_cmp(&encode(&b).unwrap())
+            && a.partial_cmp(&b) == encode(&a).unwrap().partial_cmp(&encode(&(b.next_after(a))).unwrap())
+            && b.partial_cmp(&a) == encode(&b).unwrap().partial_cmp(&encode(&(a.next_after(b))).unwrap())
     }
 
     #[test]
     fn test_f32() {
-        assert!(encode(&f32::NEG_INFINITY) < encode(&f32::MIN_VALUE));
-        assert!(encode(&f32::MIN_VALUE) < encode(&(f32::MIN_VALUE.next_after(f32::INFINITY))));
+        assert!(encode(&f32::NEG_INFINITY).unwrap() < encode(&f32::MIN_VALUE).unwrap());
+        assert!(encode(&f32::MIN_VALUE).unwrap() < encode(&(f32::MIN_VALUE.next_after(f32::INFINITY))).unwrap());
 
-        assert!(encode(&(-0.0f32).next_after(f32::NEG_INFINITY)) < encode(&-0.0f32));
-        assert!(encode(&-0f32) < encode(&0f32));
-        assert!(encode(&0f32) < encode(&f32::MIN_POS_VALUE));
+        assert!(encode(&(-0.0f32).next_after(f32::NEG_INFINITY)).unwrap() < encode(&-0.0f32).unwrap());
+        assert!(encode(&-0f32).unwrap() < encode(&0f32).unwrap());
+        assert!(encode(&0f32).unwrap() < encode(&f32::MIN_POS_VALUE).unwrap());
 
-        assert!(encode(&(f32::MAX_VALUE.next_after(f32::NEG_INFINITY))) < encode(&f32::MAX_VALUE));
-        assert!(encode(&f32::MAX_VALUE) < encode(&f32::INFINITY));
-        assert!(encode(&f32::INFINITY) < encode(&f32::NAN));
+        assert!(encode(&(f32::MAX_VALUE.next_after(f32::NEG_INFINITY))).unwrap() < encode(&f32::MAX_VALUE).unwrap());
+        assert!(encode(&f32::MAX_VALUE).unwrap() < encode(&f32::INFINITY).unwrap());
+        assert!(encode(&f32::INFINITY).unwrap() < encode(&f32::NAN).unwrap());
     }
 
     #[quickcheck]
     fn check_f64(a: f64, b: f64) -> bool {
-        a.partial_cmp(&b) == encode(&a).partial_cmp(&encode(&b))
-            && a.partial_cmp(&b) == encode(&a).partial_cmp(&encode(&(b.next_after(a))))
-            && b.partial_cmp(&a) == encode(&b).partial_cmp(&encode(&(a.next_after(b))))
+        a.partial_cmp(&b) == encode(&a).unwrap().partial_cmp(&encode(&b).unwrap())
+            && a.partial_cmp(&b) == encode(&a).unwrap().partial_cmp(&encode(&(b.next_after(a))).unwrap())
+            && b.partial_cmp(&a) == encode(&b).unwrap().partial_cmp(&encode(&(a.next_after(b))).unwrap())
     }
 
     #[test]
     fn test_f64() {
-        assert!(encode(&f64::NEG_INFINITY) < encode(&f64::MIN_VALUE));
-        assert!(encode(&f64::MIN_VALUE) < encode(&(f64::MIN_VALUE.next_after(f64::INFINITY))));
+        assert!(encode(&f64::NEG_INFINITY).unwrap() < encode(&f64::MIN_VALUE).unwrap());
+        assert!(encode(&f64::MIN_VALUE).unwrap() < encode(&(f64::MIN_VALUE.next_after(f64::INFINITY))).unwrap());
 
-        assert!(encode(&(-0.0f64).next_after(f64::NEG_INFINITY)) < encode(&-0.0f64));
-        assert!(encode(&-0f64) < encode(&0f64));
-        assert!(encode(&0f64) < encode(&f64::MIN_POS_VALUE));
+        assert!(encode(&(-0.0f64).next_after(f64::NEG_INFINITY)).unwrap() < encode(&-0.0f64).unwrap());
+        assert!(encode(&-0f64).unwrap() < encode(&0f64).unwrap());
+        assert!(encode(&0f64).unwrap() < encode(&f64::MIN_POS_VALUE).unwrap());
 
-        assert!(encode(&(f64::MAX_VALUE.next_after(f64::NEG_INFINITY))) < encode(&f64::MAX_VALUE));
-        assert!(encode(&f64::MAX_VALUE) < encode(&f64::INFINITY));
-        assert!(encode(&f64::INFINITY) < encode(&f64::NAN));
+        assert!(encode(&(f64::MAX_VALUE.next_after(f64::NEG_INFINITY))).unwrap() < encode(&f64::MAX_VALUE).unwrap());
+        assert!(encode(&f64::MAX_VALUE).unwrap() < encode(&f64::INFINITY).unwrap());
+        assert!(encode(&f64::INFINITY).unwrap() < encode(&f64::NAN).unwrap());
     }
 
     #[test]
     fn test_bool() {
         for &(a, b) in vec!((true, true), (true, false), (false, true), (false, false)).iter() {
-            assert_eq!(a.partial_cmp(&b), encode(&a).partial_cmp(&encode(&b)))
+            assert_eq!(a.partial_cmp(&b), encode(&a).unwrap().partial_cmp(&encode(&b).unwrap()))
         }
     }
 
     #[quickcheck]
     fn check_char(a: char, b: char) -> bool {
-        a.partial_cmp(&b) == encode(&a).partial_cmp(&encode(&b))
+        a.partial_cmp(&b) == encode(&a).unwrap().partial_cmp(&encode(&b).unwrap())
     }
 
     #[quickcheck]
     fn check_string(a: String, b: String) -> bool {
-        a.partial_cmp(&b) == encode(&a).partial_cmp(&encode(&b))
+        a.partial_cmp(&b) == encode(&a).unwrap().partial_cmp(&encode(&b).unwrap())
     }
 
     #[quickcheck]
     fn check_option(a: Option<String>, b: Option<String>) -> bool {
-        a.partial_cmp(&b) == encode(&a).partial_cmp(&encode(&b))
+        a.partial_cmp(&b) == encode(&a).unwrap().partial_cmp(&encode(&b).unwrap())
     }
 
     #[quickcheck]
     fn check_struct(a: TestStruct, b: TestStruct) -> bool {
-        a.partial_cmp(&b) == encode(&a).partial_cmp(&encode(&b))
+        a.partial_cmp(&b) == encode(&a).unwrap().partial_cmp(&encode(&b).unwrap())
     }
 
     #[quickcheck]
     fn check_tuple(a: (u32, char, String), b: (u32, char, String)) -> bool {
-        a.partial_cmp(&b) == encode(&a).partial_cmp(&encode(&b))
+        a.partial_cmp(&b) == encode(&a).unwrap().partial_cmp(&encode(&b).unwrap())
     }
 
     #[quickcheck]
     fn check_enum(a: TestEnum, b: TestEnum) -> bool {
-        a.partial_cmp(&b) == encode(&a).partial_cmp(&encode(&b))
+        a.partial_cmp(&b) == encode(&a).unwrap().partial_cmp(&encode(&b).unwrap())
     }
 
-    #[deriving(Encodable, Decodable, Clone, Show, PartialEq, PartialOrd)]
+    #[derive(RustcEncodable, RustcDecodable, Clone, Show, PartialEq, PartialOrd)]
     pub struct TestStruct {
         u8_: u8,
         u16_: u16,
         u32_: u32,
         u64_: u64,
-        uint_: uint,
+        usize_: usize,
 
         i8_: i8,
         i16_: i16,
         i32_: i32,
         i64_: i64,
-        int_: int,
+        isize_: isize,
 
         f32_: f32,
         f64_: f64,
@@ -756,13 +760,13 @@ pub mod test {
                 u16_: Arbitrary::arbitrary(g),
                 u32_: Arbitrary::arbitrary(g),
                 u64_: Arbitrary::arbitrary(g),
-                uint_: Arbitrary::arbitrary(g),
+                usize_: Arbitrary::arbitrary(g),
 
                 i8_: Arbitrary::arbitrary(g),
                 i16_: Arbitrary::arbitrary(g),
                 i32_: Arbitrary::arbitrary(g),
                 i64_: Arbitrary::arbitrary(g),
-                int_: Arbitrary::arbitrary(g),
+                isize_: Arbitrary::arbitrary(g),
 
                 f32_: Arbitrary::arbitrary(g),
                 f64_: Arbitrary::arbitrary(g),
@@ -775,11 +779,11 @@ pub mod test {
         }
     }
 
-    #[deriving(Encodable, Decodable, Clone, Show, PartialEq, PartialOrd)]
+    #[derive(RustcEncodable, RustcDecodable, Clone, Show, PartialEq, PartialOrd)]
     pub enum TestEnum {
         A(u32, String),
         B,
-        C(int)
+        C(isize)
     }
 
     impl Arbitrary for TestEnum {

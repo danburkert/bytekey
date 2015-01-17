@@ -1,10 +1,8 @@
-use serialize;
-use serialize::Decodable;
+use rustc_serialize::{self, Decodable};
 use std::{i8, i16, i32, i64};
 use std::io::MemReader;
 use std::io;
 use std::iter::range_inclusive;
-use std::io::IoError;
 use std::mem::transmute;
 
 /// A decoder for deserializing bytes in an order preserving format to a value.
@@ -18,14 +16,14 @@ pub struct Decoder<R> {
 ///
 /// ```
 /// # use bytekey::{encode, decode};
-/// assert_eq!(Ok(42u), decode::<uint>(encode(&42u)));
+/// assert_eq!(Ok(42u), decode::<usize>(encode(&42u).unwrap()));
 /// ```
-pub fn decode<T: Decodable<Decoder<MemReader>, io::IoError>>(bytes: Vec<u8>) -> Result<T, io::IoError> {
+pub fn decode<T: Decodable>(bytes: Vec<u8>) -> Result<T, io::IoError> {
     Decodable::decode(&mut Decoder::new(MemReader::new(bytes)))
 }
 
 /// The error type returned by all decoding operations supported by `Decoder`.
-pub type DecodeResult<T> = Result<T, IoError>;
+pub type DecodeResult<T> = Result<T, io::IoError>;
 
 impl<R: io::Reader> Decoder<R> {
 
@@ -37,10 +35,10 @@ impl<R: io::Reader> Decoder<R> {
     pub fn read_var_u64(&mut self) -> DecodeResult<u64> {
         let header = try!(self.reader.read_u8());
         let n = header >> 4;
-        let mut val = ((header & 0x0F) as u64) << (n as uint * 8);
+        let mut val = ((header & 0x0F) as u64) << (n as usize * 8);
         for i in range_inclusive(1, n) {
             let byte = try!(self.reader.read_u8());
-            val += (byte as u64) << ((n - i) as uint * 8);
+            val += (byte as u64) << ((n - i) as usize * 8);
         }
         Ok(val)
     }
@@ -49,10 +47,10 @@ impl<R: io::Reader> Decoder<R> {
         let header = try!(self.reader.read_u8());
         let mask = ((header ^ 0x80) as i8 >> 7) as u8;
         let n = ((header >> 3) ^ mask) & 0x0F;
-        let mut val = (((header ^ mask) & 0x07) as u64) << (n as uint * 8);
+        let mut val = (((header ^ mask) & 0x07) as u64) << (n as usize * 8);
         for i in range_inclusive(1, n) {
             let byte = try!(self.reader.read_u8());
-            val += ((byte ^ mask) as u64) << ((n - i) as uint * 8);
+            val += ((byte ^ mask) as u64) << ((n - i) as usize * 8);
         }
         let final_mask = (((mask as i64) << 63) >> 63) as u64;
         val ^= final_mask;
@@ -61,7 +59,10 @@ impl<R: io::Reader> Decoder<R> {
 }
 
 
-impl<R: Reader> serialize::Decoder<IoError> for Decoder<R> {
+impl<R: Reader> rustc_serialize::Decoder for Decoder<R> {
+
+    type Error = io::IoError;
+
 
     fn read_nil(&mut self) -> DecodeResult<()> { Ok(()) }
 
@@ -69,9 +70,9 @@ impl<R: Reader> serialize::Decoder<IoError> for Decoder<R> {
     fn read_u16(&mut self) -> DecodeResult<u16> { self.reader.read_be_u16() }
     fn read_u32(&mut self) -> DecodeResult<u32> { self.reader.read_be_u32() }
     fn read_u64(&mut self) -> DecodeResult<u64> { self.reader.read_be_u64() }
-    fn read_uint(&mut self) -> DecodeResult<uint> {
+    fn read_usize(&mut self) -> DecodeResult<usize> {
         let val = try!(self.read_var_u64());
-        Ok(val as uint)
+        Ok(val as usize)
     }
 
     fn read_i8(&mut self) -> DecodeResult<i8> {
@@ -90,9 +91,9 @@ impl<R: Reader> serialize::Decoder<IoError> for Decoder<R> {
         let val = try!(self.reader.read_be_i64());
         Ok(val ^ i64::MIN)
     }
-    fn read_int(&mut self) -> DecodeResult<int> {
+    fn read_isize(&mut self) -> DecodeResult<isize> {
         let val = try!(self.read_var_i64());
-        Ok(val as int)
+        Ok(val as isize)
     }
 
     fn read_bool(&mut self) -> DecodeResult<bool> {
@@ -133,99 +134,114 @@ impl<R: Reader> serialize::Decoder<IoError> for Decoder<R> {
         Ok(string)
     }
 
-    fn read_enum<T>(&mut self, _name: &str, f: |&mut Decoder<R>| -> DecodeResult<T>) -> DecodeResult<T> {
+    fn read_enum<T, F>(&mut self, _name: &str, f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self) -> Result<T, io::IoError> {
         f(self)
     }
-    fn read_enum_variant<T>(&mut self,
-                            _names: &[&str],
-                            f: |&mut Decoder<R>, uint| -> DecodeResult<T>)
-                            -> DecodeResult<T> {
-        let id = try!(self.read_uint());
+    fn read_enum_variant<T, F>(&mut self,
+                               _names: &[&str],
+                               mut f: F) -> Result<T, io::IoError>
+            where F: FnMut(&mut Self, usize) -> Result<T, io::IoError> {
+        let id = try!(self.read_usize());
         f(self, id)
     }
-    fn read_enum_variant_arg<T>(&mut self,
-                                _idx: uint,
-                                f: |&mut Decoder<R>| -> DecodeResult<T>)
-                                -> DecodeResult<T> {
+    fn read_enum_variant_arg<T, F>(&mut self,
+                                   _idx: usize,
+                                   f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self) -> Result<T, io::IoError> {
         f(self)
     }
-    fn read_enum_struct_variant<T>(&mut self,
-                                   names: &[&str],
-                                   f: |&mut Decoder<R>, uint| -> DecodeResult<T>)
-                                   -> DecodeResult<T> {
+    fn read_enum_struct_variant<T, F>(&mut self,
+                                      names: &[&str],
+                                      f: F) -> Result<T, io::IoError>
+            where F: FnMut(&mut Self, usize) -> Result<T, io::IoError> {
         self.read_enum_variant(names, f)
     }
-    fn read_enum_struct_variant_field<T>(&mut self,
-                                         _name: &str,
-                                         idx: uint,
-                                         f: |&mut Decoder<R>| -> DecodeResult<T>)
-                                         -> DecodeResult<T> {
+    fn read_enum_struct_variant_field<T, F>(&mut self,
+                                            _name: &str,
+                                            idx: usize,
+                                            f: F)
+                                            -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self) -> Result<T, io::IoError> {
         self.read_enum_variant_arg(idx, f)
     }
 
-    fn read_struct<T>(&mut self,
-                      _name: &str,
-                      _len: uint,
-                      f: |&mut Decoder<R>| -> DecodeResult<T>)
-                      -> DecodeResult<T> {
+    fn read_struct<T, F>(&mut self,
+                         _name: &str,
+                         _len: usize,
+                         f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self) -> Result<T, io::IoError> {
         f(self)
     }
-    fn read_struct_field<T>(&mut self,
-                            _name: &str,
-                            _idx: uint,
-                            f: |&mut Decoder<R>| -> DecodeResult<T>) -> DecodeResult<T> {
+    fn read_struct_field<T, F>(&mut self,
+                               _name: &str,
+                               _idx: usize,
+                               f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self) -> Result<T, io::IoError> {
         f(self)
     }
 
-    fn read_tuple<T>(&mut self,
-                     _len: uint,
-                     f: |&mut Decoder<R>| -> DecodeResult<T>) -> DecodeResult<T> {
+    fn read_tuple<T, F>(&mut self,
+                        _len: usize,
+                        f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self) -> Result<T, io::IoError> {
         f(self)
     }
-    fn read_tuple_arg<T>(&mut self,
-                         _idx: uint,
-                         f: |&mut Decoder<R>| -> DecodeResult<T>)
-                         -> DecodeResult<T> {
+    fn read_tuple_arg<T, F>(&mut self,
+                            _idx: usize,
+                            f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self) -> Result<T, io::IoError> {
         f(self)
     }
-    fn read_tuple_struct<T>(&mut self,
-                            _name: &str,
-                            len: uint,
-                            f: |&mut Decoder<R>| -> DecodeResult<T>)
-                            -> DecodeResult<T> {
+
+    fn read_tuple_struct<T, F>(&mut self,
+                               _name: &str,
+                               len: usize,
+                               f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self) -> Result<T, io::IoError> {
         self.read_tuple(len, f)
     }
-    fn read_tuple_struct_arg<T>(&mut self,
-                                idx: uint,
-                                f: |&mut Decoder<R>| -> DecodeResult<T>)
-                                -> DecodeResult<T> {
+    fn read_tuple_struct_arg<T, F>(&mut self,
+                                   idx: usize,
+                                   f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self) -> Result<T, io::IoError> {
         self.read_tuple_arg(idx, f)
     }
 
-    fn read_option<T>(&mut self, f: |&mut Decoder<R>, bool| -> DecodeResult<T>) -> DecodeResult<T> {
+    fn read_option<T, F>(&mut self, mut f: F) -> Result<T, io::IoError>
+            where F: FnMut(&mut Self, bool) -> Result<T, io::IoError> {
         let is_some = try!(self.read_bool());
         f(self, is_some)
     }
 
-    fn read_seq<T>(&mut self, _f: |&mut Decoder<R>, uint| -> DecodeResult<T>) -> DecodeResult<T> {
+    fn read_seq<T, F>(&mut self, _f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self, usize) -> Result<T, io::IoError> {
         unimplemented!()
     }
-    fn read_seq_elt<T>(&mut self, _idx: uint, _f: |&mut Decoder<R>| -> DecodeResult<T>) -> DecodeResult<T> {
-        unimplemented!()
-    }
-
-    fn read_map<T>(&mut self, _f: |&mut Decoder<R>, uint| -> DecodeResult<T>) -> DecodeResult<T> {
-        unimplemented!()
-    }
-    fn read_map_elt_key<T>(&mut self, _idx: uint, _f: |&mut Decoder<R>| -> DecodeResult<T>) -> DecodeResult<T> {
-        unimplemented!()
-    }
-    fn read_map_elt_val<T>(&mut self, _idx: uint, _f: |&mut Decoder<R>| -> DecodeResult<T>) -> DecodeResult<T> {
+    fn read_seq_elt<T, F>(&mut self, _idx: usize, _f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self) -> Result<T, io::IoError> {
         unimplemented!()
     }
 
-    fn error(&mut self, err: &str) -> IoError {
-        IoError {
+    fn read_map<T, F>(&mut self, _f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self, usize) -> Result<T, io::IoError> {
+        unimplemented!()
+    }
+    fn read_map_elt_key<T, F>(&mut self,
+                              _idx: usize,
+                              _f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self) -> Result<T, io::IoError> {
+        unimplemented!()
+    }
+    fn read_map_elt_val<T, F>(&mut self,
+                              _idx: usize,
+                              _f: F) -> Result<T, io::IoError>
+            where F: FnOnce(&mut Self) -> Result<T, io::IoError> {
+        unimplemented!()
+    }
+
+    fn error(&mut self, err: &str) -> io::IoError {
+        io::IoError {
             kind: io::OtherIoError,
             desc: "Decoding error",
             detail: Some(err.to_string())
@@ -236,7 +252,7 @@ impl<R: Reader> serialize::Decoder<IoError> for Decoder<R> {
 #[cfg(test)]
 mod test {
 
-    #[phase(plugin)]
+    #[plugin]
     extern crate quickcheck_macros;
     extern crate quickcheck;
 
@@ -249,85 +265,85 @@ mod test {
 
     #[quickcheck]
     fn check_u8(val: u8) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
     #[quickcheck]
     fn check_u16(val: u16) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
     #[quickcheck]
     fn check_u32(val: u32) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
     #[quickcheck]
     fn check_u64(val: u64) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
     #[quickcheck]
-    fn check_uint(val: uint) -> bool {
-        val == decode(encode(&val)).unwrap()
+    fn check_usize(val: usize) -> bool {
+        val == decode(encode(&val).unwrap()).unwrap()
     }
     #[test]
-    fn test_uint() {
+    fn test_usize() {
         let values = vec![
-            0u, 2u.pow(0),
-            2u.pow(4)  - 1, 2u.pow(4),
-            2u.pow(12) - 1, 2u.pow(12),
-            2u.pow(20) - 1, 2u.pow(20),
-            2u.pow(28) - 1, 2u.pow(28),
-            2u.pow(36) - 1, 2u.pow(36),
-            2u.pow(44) - 1, 2u.pow(44),
-            2u.pow(52) - 1, 2u.pow(52),
-            2u.pow(60) - 1, 2u.pow(60),
-            2u.pow(64) - 1,
+            0us, 2us.pow(0),
+            2us.pow(4)  - 1, 2us.pow(4),
+            2us.pow(12) - 1, 2us.pow(12),
+            2us.pow(20) - 1, 2us.pow(20),
+            2us.pow(28) - 1, 2us.pow(28),
+            2us.pow(36) - 1, 2us.pow(36),
+            2us.pow(44) - 1, 2us.pow(44),
+            2us.pow(52) - 1, 2us.pow(52),
+            2us.pow(60) - 1, 2us.pow(60),
+            2us.pow(64) - 1,
         ];
         for val in values.iter() {
-            assert_eq!(*val, decode(encode(val)).unwrap());
+            assert_eq!(*val, decode(encode(val).unwrap()).unwrap());
         }
     }
 
     #[quickcheck]
     fn check_i8(val: i8) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
     #[quickcheck]
     fn check_i16(val: i16) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
     #[quickcheck]
     fn check_i32(val: i32) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
     #[quickcheck]
     fn check_i64(val: i64) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
     #[quickcheck]
-    fn check_int(val: int) -> bool {
-        val == decode(encode(&val)).unwrap()
+    fn check_isize(val: isize) -> bool {
+        val == decode(encode(&val).unwrap()).unwrap()
     }
     #[test]
-    fn test_int() {
+    fn test_isize() {
         let values = vec![
-            -2i.pow(0), 0i, 2i.pow(0),
-            -2i.pow(3)  - 1, -2i.pow(3),  2i.pow(3)  - 1, 2i.pow(3),
-            -2i.pow(11) - 1, -2i.pow(11), 2i.pow(11) - 1, 2i.pow(11),
-            -2i.pow(19) - 1, -2i.pow(19), 2i.pow(19) - 1, 2i.pow(19),
-            -2i.pow(27) - 1, -2i.pow(27), 2i.pow(27) - 1, 2i.pow(27),
-            -2i.pow(35) - 1, -2i.pow(35), 2i.pow(35) - 1, 2i.pow(35),
-            -2i.pow(43) - 1, -2i.pow(43), 2i.pow(43) - 1, 2i.pow(43),
-            -2i.pow(51) - 1, -2i.pow(51), 2i.pow(51) - 1, 2i.pow(51),
-            -2i.pow(59) - 1, -2i.pow(59), 2i.pow(59) - 1, 2i.pow(59),
-            -2i.pow(63), 2i.pow(63) - 1
+            -2is.pow(0), 0is, 2is.pow(0),
+            -2is.pow(3)  - 1, -2is.pow(3),  2is.pow(3)  - 1, 2is.pow(3),
+            -2is.pow(11) - 1, -2is.pow(11), 2is.pow(11) - 1, 2is.pow(11),
+            -2is.pow(19) - 1, -2is.pow(19), 2is.pow(19) - 1, 2is.pow(19),
+            -2is.pow(27) - 1, -2is.pow(27), 2is.pow(27) - 1, 2is.pow(27),
+            -2is.pow(35) - 1, -2is.pow(35), 2is.pow(35) - 1, 2is.pow(35),
+            -2is.pow(43) - 1, -2is.pow(43), 2is.pow(43) - 1, 2is.pow(43),
+            -2is.pow(51) - 1, -2is.pow(51), 2is.pow(51) - 1, 2is.pow(51),
+            -2is.pow(59) - 1, -2is.pow(59), 2is.pow(59) - 1, 2is.pow(59),
+            -2is.pow(63), 2is.pow(63) - 1
         ];
         for val in values.iter() {
-            assert_eq!(*val, decode(encode(val)).unwrap());
+            assert_eq!(*val, decode(encode(val).unwrap()).unwrap());
         }
     }
 
     #[quickcheck]
     fn check_f32(val: f32) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
     #[test]
     fn test_f32() {
@@ -341,13 +357,13 @@ mod test {
             f32::INFINITY
         ];
         for val in values.iter() {
-            assert_eq!(*val, decode(encode(val)).unwrap());
+            assert_eq!(*val, decode(encode(val).unwrap()).unwrap());
         }
     }
 
     #[quickcheck]
     fn check_f64(val: f64) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
     #[test]
     fn test_f64() {
@@ -361,37 +377,37 @@ mod test {
             f64::INFINITY
         ];
         for val in values.iter() {
-            assert_eq!(*val, decode(encode(val)).unwrap());
+            assert_eq!(*val, decode(encode(val).unwrap()).unwrap());
         }
     }
 
     #[quickcheck]
     fn check_char(val: char) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
 
     #[quickcheck]
     fn check_string(val: String) -> bool {
-        val == decode::<String>(encode(&val)).unwrap()
+        val == decode::<String>(encode(&val).unwrap()).unwrap()
     }
 
     #[quickcheck]
     fn check_option(val: Option<String>) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
 
     #[quickcheck]
     fn check_struct(val: TestStruct) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
 
      #[quickcheck]
-    fn check_tuple(val: (uint, char, String)) -> bool {
-        val == decode(encode(&val)).unwrap()
+    fn check_tuple(val: (usize, char, String)) -> bool {
+        val == decode(encode(&val).unwrap()).unwrap()
     }
 
     #[quickcheck]
     fn check_enum(val: TestEnum) -> bool {
-        val == decode(encode(&val)).unwrap()
+        val == decode(encode(&val).unwrap()).unwrap()
     }
 }

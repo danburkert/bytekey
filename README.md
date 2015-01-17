@@ -14,7 +14,7 @@ alongside values, and thus the type of serialized data must be known in order to
 ## Supported Data Types
 
 `bytekey` encoding currently supports all Rust primitives, strings, options, structs, enums, and
-tuples. `int` and `uint` types are variable-length encoded. Sequence (`Vec`) and map types are
+tuples. `isize` and `usize` types are variable-length encoded. Sequence (`Vec`) and map types are
 not currently supported (but could be in the future). See `Encoder` for details on the
 serialization format.
 
@@ -26,7 +26,7 @@ extern crate bytekey;
 use bytekey::{encode, decode};
 
 #[deriving(Encodable, Decodable, Show, PartialEq)]
-struct MyKey { a: uint, b: String }
+struct MyKey { a: usize, b: String }
 
 let a = MyKey { a: 1, b: "foo".to_string() };
 let b = MyKey { a: 2, b: "foo".to_string() };
