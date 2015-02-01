@@ -1,7 +1,7 @@
 use rustc_serialize::{self, Decodable};
 use std::{i8, i16, i32, i64};
-use std::io::MemReader;
-use std::io;
+use std::old_io::MemReader;
+use std::old_io as io;
 use std::iter::range_inclusive;
 use std::mem::transmute;
 

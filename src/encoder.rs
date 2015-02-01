@@ -1,7 +1,7 @@
 use rustc_serialize::{self, Encodable};
 use std::{i8, i16, i32, i64};
-use std::io::MemWriter;
-use std::io;
+use std::old_io::MemWriter;
+use std::old_io as io;
 use std::mem::transmute;
 use std::num::SignedInt;
 
@@ -318,7 +318,7 @@ impl<'a> rustc_serialize::Encoder for Encoder<'a> {
 
     type Error = io::IoError;
 
-    fn emit_nil(&mut self) -> EncodeResult { self.writer.write([].as_slice()) }
+    fn emit_nil(&mut self) -> EncodeResult { self.writer.write_all([].as_slice()) }
 
     fn emit_u8(&mut self, v: u8) -> EncodeResult  { self.writer.write_u8(v) }
     fn emit_u16(&mut self, v: u16) -> EncodeResult { self.writer.write_be_u16(v) }
@@ -361,7 +361,7 @@ impl<'a> rustc_serialize::Encoder for Encoder<'a> {
     }
 
     fn emit_str(&mut self, v: &str) -> EncodeResult {
-        try!(self.writer.write(v.as_bytes()));
+        try!(self.writer.write_all(v.as_bytes()));
         self.writer.write_u8(0u8)
     }
 
@@ -460,8 +460,7 @@ impl<'a> rustc_serialize::Encoder for Encoder<'a> {
             where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
         unimplemented!()
     }
-    fn emit_map_elt_key<F>(&mut self, _idx: usize, _f: F) -> Result<(), io::IoError>
-            where F: FnMut(&mut Self) -> Result<(), io::IoError> {
+    fn emit_map_elt_key<F>(&mut self, _idx: usize, _f: F) -> Result<(), io::IoError> {
         unimplemented!()
     }
     fn emit_map_elt_val<F>(&mut self, _idx: usize, _f: F) -> Result<(), io::IoError>
@@ -730,7 +729,7 @@ pub mod test {
         a.partial_cmp(&b) == encode(&a).unwrap().partial_cmp(&encode(&b).unwrap())
     }
 
-    #[derive(RustcEncodable, RustcDecodable, Clone, Show, PartialEq, PartialOrd)]
+    #[derive(RustcEncodable, RustcDecodable, Clone, Debug, PartialEq, PartialOrd)]
     pub struct TestStruct {
         u8_: u8,
         u16_: u16,
@@ -779,7 +778,7 @@ pub mod test {
         }
     }
 
-    #[derive(RustcEncodable, RustcDecodable, Clone, Show, PartialEq, PartialOrd)]
+    #[derive(RustcEncodable, RustcDecodable, Clone, Debug, PartialEq, PartialOrd)]
     pub enum TestEnum {
         A(u32, String),
         B,

@@ -59,9 +59,8 @@
 //! backwards-compatible manner (the different key types will sort seperately). If your enum has
 //! less than 16 variants, then the overhead is just a single byte in encoded output.
 
-#![unstable]
-#![feature(plugin)]
-#![allow(unstable)]
+#![feature(plugin, io, core, collections)]
+#![cfg_attr(test, feature(std_misc, rand))]
 
 extern crate "rustc-serialize" as rustc_serialize;
 
