@@ -60,12 +60,12 @@
 //! less than 16 variants, then the overhead is just a single byte in encoded output.
 
 #![feature(plugin, io, core)]
-#![cfg_attr(test, feature(std_misc, rand))]
+#![cfg_attr(test, feature(std_misc))]
 
 extern crate "rustc-serialize" as rustc_serialize;
 
-#[cfg(test)]
-extern crate quickcheck;
+#[cfg(test)] extern crate quickcheck;
+#[cfg(test)] extern crate rand;
 
 pub use encoder::Encoder;
 pub use encoder::EncodeResult;

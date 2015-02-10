@@ -472,14 +472,12 @@ impl<'a> rustc_serialize::Encoder for Encoder<'a> {
 #[cfg(test)]
 pub mod test {
 
-    #[plugin]
-    extern crate quickcheck_macros;
-    extern crate quickcheck;
+    #[plugin] #[no_link] extern crate quickcheck_macros;
 
+    use rand::Rng;
     use std::{u8, u16, i8, i16, f32, f64};
     use std::iter::range_inclusive;
     use std::num::{Int, Float};
-    use std::rand::Rng;
 
     use quickcheck::{Arbitrary, Gen};
 

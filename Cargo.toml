@@ -16,3 +16,4 @@ keywords = ["encoding", "serialization", "library"]
 [dev-dependencies]
   quickcheck = "*"
   quickcheck_macros = "*"
+  rand = "*"
