@@ -61,6 +61,7 @@
 
 #![feature(plugin, io, core)]
 #![cfg_attr(test, feature(std_misc))]
+#![cfg_attr(test, plugin(quickcheck_macros))]
 
 extern crate "rustc-serialize" as rustc_serialize;
 

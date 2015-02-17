@@ -1,6 +1,5 @@
 use rustc_serialize::{self, Encodable};
 use std::{i8, i16, i32, i64};
-use std::old_io::MemWriter;
 use std::old_io as io;
 use std::mem::transmute;
 use std::num::SignedInt;
@@ -105,12 +104,12 @@ pub struct Encoder<'a> {
 /// assert_eq!(Ok(vec!(0x2A, 0x66, 0x69, 0x7A, 0x7A, 0x00)), encode(&(42u8, "fizz")));
 /// ```
 pub fn encode<'a, T : Encodable>(object: &T) -> Result<Vec<u8>, io::IoError>  {
-    let mut writer = MemWriter::new();
+    let mut writer = Vec::new();
     {
         let mut encoder = Encoder::new(&mut writer);
         try!(object.encode(&mut encoder));
     }
-    Ok(writer.into_inner())
+    Ok(writer)
 }
 
 impl<'a> Encoder<'a> {
@@ -471,8 +470,6 @@ impl<'a> rustc_serialize::Encoder for Encoder<'a> {
 
 #[cfg(test)]
 pub mod test {
-
-    #[plugin] #[no_link] extern crate quickcheck_macros;
 
     use rand::Rng;
     use std::{u8, u16, i8, i16, f32, f64};

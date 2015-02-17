@@ -252,10 +252,6 @@ impl<R: Reader> rustc_serialize::Decoder for Decoder<R> {
 #[cfg(test)]
 mod test {
 
-    #[plugin]
-    extern crate quickcheck_macros;
-    extern crate quickcheck;
-
     use std::{f32, f64};
     use std::num::Int;
 
