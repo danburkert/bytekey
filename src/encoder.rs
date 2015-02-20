@@ -512,34 +512,34 @@ pub mod test {
 
     #[test]
     fn test_var_u64() {
-        assert_eq!(vec!(0x00), encode(&0us).unwrap());
-        assert_eq!(vec!(0x01), encode(&2us.pow(0)).unwrap());
+        assert_eq!(vec!(0x00), encode(&0usize).unwrap());
+        assert_eq!(vec!(0x01), encode(&2usize.pow(0)).unwrap());
 
-        assert_eq!(vec!(0x0F), encode(&(2us.pow(4) - 1)).unwrap());
-        assert_eq!(vec!(0x10, 0x10), encode(&2us.pow(4)).unwrap());
+        assert_eq!(vec!(0x0F), encode(&(2usize.pow(4) - 1)).unwrap());
+        assert_eq!(vec!(0x10, 0x10), encode(&2usize.pow(4)).unwrap());
 
-        assert_eq!(vec!(0x1F, 0xFF), encode(&(2us.pow(12) - 1)).unwrap());
-        assert_eq!(vec!(0x20, 0x10, 0x00), encode(&2us.pow(12)).unwrap());
+        assert_eq!(vec!(0x1F, 0xFF), encode(&(2usize.pow(12) - 1)).unwrap());
+        assert_eq!(vec!(0x20, 0x10, 0x00), encode(&2usize.pow(12)).unwrap());
 
-        assert_eq!(vec!(0x2F, 0xFF, 0xFF), encode(&(2us.pow(20) - 1)).unwrap());
-        assert_eq!(vec!(0x30, 0x10, 0x00, 0x00), encode(&2us.pow(20)).unwrap());
+        assert_eq!(vec!(0x2F, 0xFF, 0xFF), encode(&(2usize.pow(20) - 1)).unwrap());
+        assert_eq!(vec!(0x30, 0x10, 0x00, 0x00), encode(&2usize.pow(20)).unwrap());
 
-        assert_eq!(vec!(0x3F, 0xFF, 0xFF, 0xFF), encode(&(2us.pow(28) - 1)).unwrap());
-        assert_eq!(vec!(0x40, 0x10, 0x00, 0x00, 0x00), encode(&2us.pow(28)).unwrap());
+        assert_eq!(vec!(0x3F, 0xFF, 0xFF, 0xFF), encode(&(2usize.pow(28) - 1)).unwrap());
+        assert_eq!(vec!(0x40, 0x10, 0x00, 0x00, 0x00), encode(&2usize.pow(28)).unwrap());
 
-        assert_eq!(vec!(0x4F, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2us.pow(36) - 1)).unwrap());
-        assert_eq!(vec!(0x50, 0x10, 0x00, 0x00, 0x00, 0x00), encode(&2us.pow(36)).unwrap());
+        assert_eq!(vec!(0x4F, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2usize.pow(36) - 1)).unwrap());
+        assert_eq!(vec!(0x50, 0x10, 0x00, 0x00, 0x00, 0x00), encode(&2usize.pow(36)).unwrap());
 
-        assert_eq!(vec!(0x5F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2us.pow(44) - 1)).unwrap());
-        assert_eq!(vec!(0x60, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2us.pow(44)).unwrap());
+        assert_eq!(vec!(0x5F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2usize.pow(44) - 1)).unwrap());
+        assert_eq!(vec!(0x60, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2usize.pow(44)).unwrap());
 
-        assert_eq!(vec!(0x6F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2us.pow(52) - 1)).unwrap());
-        assert_eq!(vec!(0x70, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2us.pow(52)).unwrap());
+        assert_eq!(vec!(0x6F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2usize.pow(52) - 1)).unwrap());
+        assert_eq!(vec!(0x70, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2usize.pow(52)).unwrap());
 
-        assert_eq!(vec!(0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2us.pow(60) - 1)).unwrap());
-        assert_eq!(vec!(0x80, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2us.pow(60)).unwrap());
+        assert_eq!(vec!(0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2usize.pow(60) - 1)).unwrap());
+        assert_eq!(vec!(0x80, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2usize.pow(60)).unwrap());
 
-        assert_eq!(vec!(0x80, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2us.pow(64) - 1)).unwrap());
+        assert_eq!(vec!(0x80, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2usize.pow(64) - 1)).unwrap());
     }
 
     #[quickcheck]
@@ -579,65 +579,65 @@ pub mod test {
 
     #[test]
     fn test_pos_var_i64() {
-        assert_eq!(vec!(0x80), encode(&0is).unwrap());
-        assert_eq!(vec!(0x81), encode(&2is.pow(0)).unwrap());
+        assert_eq!(vec!(0x80), encode(&0isize).unwrap());
+        assert_eq!(vec!(0x81), encode(&2isize.pow(0)).unwrap());
 
-        assert_eq!(vec!(0x87), encode(&(2is.pow(3) - 1)).unwrap());
-        assert_eq!(vec!(0x88, 0x08), encode(&2is.pow(3)).unwrap());
+        assert_eq!(vec!(0x87), encode(&(2isize.pow(3) - 1)).unwrap());
+        assert_eq!(vec!(0x88, 0x08), encode(&2isize.pow(3)).unwrap());
 
-        assert_eq!(vec!(0x8F, 0xFF), encode(&(2is.pow(11) - 1)).unwrap());
-        assert_eq!(vec!(0x90, 0x08, 0x00), encode(&2is.pow(11)).unwrap());
+        assert_eq!(vec!(0x8F, 0xFF), encode(&(2isize.pow(11) - 1)).unwrap());
+        assert_eq!(vec!(0x90, 0x08, 0x00), encode(&2isize.pow(11)).unwrap());
 
-        assert_eq!(vec!(0x97, 0xFF, 0xFF), encode(&(2is.pow(19) - 1)).unwrap());
-        assert_eq!(vec!(0x98, 0x08, 0x00, 0x00), encode(&2is.pow(19)).unwrap());
+        assert_eq!(vec!(0x97, 0xFF, 0xFF), encode(&(2isize.pow(19) - 1)).unwrap());
+        assert_eq!(vec!(0x98, 0x08, 0x00, 0x00), encode(&2isize.pow(19)).unwrap());
 
-        assert_eq!(vec!(0x9F, 0xFF, 0xFF, 0xFF), encode(&(2is.pow(27) - 1)).unwrap());
-        assert_eq!(vec!(0xA0, 0x08, 0x00, 0x00, 0x00), encode(&2is.pow(27)).unwrap());
+        assert_eq!(vec!(0x9F, 0xFF, 0xFF, 0xFF), encode(&(2isize.pow(27) - 1)).unwrap());
+        assert_eq!(vec!(0xA0, 0x08, 0x00, 0x00, 0x00), encode(&2isize.pow(27)).unwrap());
 
-        assert_eq!(vec!(0xA7, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2is.pow(35) - 1)).unwrap());
-        assert_eq!(vec!(0xA8, 0x08, 0x00, 0x00, 0x00, 0x00), encode(&2is.pow(35)).unwrap());
+        assert_eq!(vec!(0xA7, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2isize.pow(35) - 1)).unwrap());
+        assert_eq!(vec!(0xA8, 0x08, 0x00, 0x00, 0x00, 0x00), encode(&2isize.pow(35)).unwrap());
 
-        assert_eq!(vec!(0xAF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2is.pow(43) - 1)).unwrap());
-        assert_eq!(vec!(0xB0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2is.pow(43)).unwrap());
+        assert_eq!(vec!(0xAF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2isize.pow(43) - 1)).unwrap());
+        assert_eq!(vec!(0xB0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2isize.pow(43)).unwrap());
 
-        assert_eq!(vec!(0xB7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2is.pow(51) - 1)).unwrap());
-        assert_eq!(vec!(0xB8, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2is.pow(51)).unwrap());
+        assert_eq!(vec!(0xB7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2isize.pow(51) - 1)).unwrap());
+        assert_eq!(vec!(0xB8, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2isize.pow(51)).unwrap());
 
-        assert_eq!(vec!(0xBF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2is.pow(59) - 1)).unwrap());
-        assert_eq!(vec!(0xC0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2is.pow(59)).unwrap());
+        assert_eq!(vec!(0xBF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2isize.pow(59) - 1)).unwrap());
+        assert_eq!(vec!(0xC0, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&2isize.pow(59)).unwrap());
 
-        assert_eq!(vec!(0xC0, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2is.pow(63) - 1)).unwrap());
+        assert_eq!(vec!(0xC0, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(2isize.pow(63) - 1)).unwrap());
     }
 
     #[test]
     fn test_neg_var_i64() {
-        assert_eq!(vec!(0x7F), encode(&(0is - 1)).unwrap());
+        assert_eq!(vec!(0x7F), encode(&(0isize - 1)).unwrap());
 
-        assert_eq!(vec!(0x78), encode(&-2is.pow(3)).unwrap());
-        assert_eq!(vec!(0x77, 0xF7), encode(&(-2is.pow(3) - 1)).unwrap());
+        assert_eq!(vec!(0x78), encode(&-2isize.pow(3)).unwrap());
+        assert_eq!(vec!(0x77, 0xF7), encode(&(-2isize.pow(3) - 1)).unwrap());
 
-        assert_eq!(vec!(0x70, 0x00), encode(&-2is.pow(11)).unwrap());
-        assert_eq!(vec!(0x6F, 0xF7, 0xFF), encode(&(-2is.pow(11) - 1)).unwrap());
+        assert_eq!(vec!(0x70, 0x00), encode(&-2isize.pow(11)).unwrap());
+        assert_eq!(vec!(0x6F, 0xF7, 0xFF), encode(&(-2isize.pow(11) - 1)).unwrap());
 
-        assert_eq!(vec!(0x68, 0x00, 0x00), encode(&-2is.pow(19)).unwrap());
-        assert_eq!(vec!(0x67, 0xF7, 0xFF, 0xFF), encode(&(-2is.pow(19) - 1)).unwrap());
+        assert_eq!(vec!(0x68, 0x00, 0x00), encode(&-2isize.pow(19)).unwrap());
+        assert_eq!(vec!(0x67, 0xF7, 0xFF, 0xFF), encode(&(-2isize.pow(19) - 1)).unwrap());
 
-        assert_eq!(vec!(0x60, 0x00, 0x00, 0x00), encode(&-2is.pow(27)).unwrap());
-        assert_eq!(vec!(0x5F, 0xF7, 0xFF, 0xFF, 0xFF), encode(&(-2is.pow(27) - 1)).unwrap());
+        assert_eq!(vec!(0x60, 0x00, 0x00, 0x00), encode(&-2isize.pow(27)).unwrap());
+        assert_eq!(vec!(0x5F, 0xF7, 0xFF, 0xFF, 0xFF), encode(&(-2isize.pow(27) - 1)).unwrap());
 
-        assert_eq!(vec!(0x58, 0x00, 0x00, 0x00, 0x00), encode(&-2is.pow(35)).unwrap());
-        assert_eq!(vec!(0x57, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2is.pow(35) - 1)).unwrap());
+        assert_eq!(vec!(0x58, 0x00, 0x00, 0x00, 0x00), encode(&-2isize.pow(35)).unwrap());
+        assert_eq!(vec!(0x57, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2isize.pow(35) - 1)).unwrap());
 
-        assert_eq!(vec!(0x50, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2is.pow(43)).unwrap());
-        assert_eq!(vec!(0x4F, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2is.pow(43) - 1)).unwrap());
+        assert_eq!(vec!(0x50, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2isize.pow(43)).unwrap());
+        assert_eq!(vec!(0x4F, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2isize.pow(43) - 1)).unwrap());
 
-        assert_eq!(vec!(0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2is.pow(51)).unwrap());
-        assert_eq!(vec!(0x47, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2is.pow(51) - 1)).unwrap());
+        assert_eq!(vec!(0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2isize.pow(51)).unwrap());
+        assert_eq!(vec!(0x47, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2isize.pow(51) - 1)).unwrap());
 
-        assert_eq!(vec!(0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2is.pow(59)).unwrap());
-        assert_eq!(vec!(0x3F, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2is.pow(59) - 1)).unwrap());
+        assert_eq!(vec!(0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2isize.pow(59)).unwrap());
+        assert_eq!(vec!(0x3F, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF), encode(&(-2isize.pow(59) - 1)).unwrap());
 
-        assert_eq!(vec!(0x3F, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2is.pow(63)).unwrap());
+        assert_eq!(vec!(0x3F, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00), encode(&-2isize.pow(63)).unwrap());
     }
 
     #[quickcheck]
@@ -654,15 +654,15 @@ pub mod test {
 
     #[test]
     fn test_f32() {
-        assert!(encode(&f32::NEG_INFINITY).unwrap() < encode(&f32::MIN_VALUE).unwrap());
-        assert!(encode(&f32::MIN_VALUE).unwrap() < encode(&(f32::MIN_VALUE.next_after(f32::INFINITY))).unwrap());
+        assert!(encode(&f32::NEG_INFINITY).unwrap() < encode(&f32::MIN).unwrap());
+        assert!(encode(&f32::MIN).unwrap() < encode(&(f32::MIN.next_after(f32::INFINITY))).unwrap());
 
         assert!(encode(&(-0.0f32).next_after(f32::NEG_INFINITY)).unwrap() < encode(&-0.0f32).unwrap());
         assert!(encode(&-0f32).unwrap() < encode(&0f32).unwrap());
-        assert!(encode(&0f32).unwrap() < encode(&f32::MIN_POS_VALUE).unwrap());
+        assert!(encode(&0f32).unwrap() < encode(&f32::MIN_POSITIVE).unwrap());
 
-        assert!(encode(&(f32::MAX_VALUE.next_after(f32::NEG_INFINITY))).unwrap() < encode(&f32::MAX_VALUE).unwrap());
-        assert!(encode(&f32::MAX_VALUE).unwrap() < encode(&f32::INFINITY).unwrap());
+        assert!(encode(&(f32::MAX.next_after(f32::NEG_INFINITY))).unwrap() < encode(&f32::MAX).unwrap());
+        assert!(encode(&f32::MAX).unwrap() < encode(&f32::INFINITY).unwrap());
         assert!(encode(&f32::INFINITY).unwrap() < encode(&f32::NAN).unwrap());
     }
 
@@ -675,15 +675,15 @@ pub mod test {
 
     #[test]
     fn test_f64() {
-        assert!(encode(&f64::NEG_INFINITY).unwrap() < encode(&f64::MIN_VALUE).unwrap());
-        assert!(encode(&f64::MIN_VALUE).unwrap() < encode(&(f64::MIN_VALUE.next_after(f64::INFINITY))).unwrap());
+        assert!(encode(&f64::NEG_INFINITY).unwrap() < encode(&f64::MIN).unwrap());
+        assert!(encode(&f64::MIN).unwrap() < encode(&(f64::MIN.next_after(f64::INFINITY))).unwrap());
 
         assert!(encode(&(-0.0f64).next_after(f64::NEG_INFINITY)).unwrap() < encode(&-0.0f64).unwrap());
         assert!(encode(&-0f64).unwrap() < encode(&0f64).unwrap());
-        assert!(encode(&0f64).unwrap() < encode(&f64::MIN_POS_VALUE).unwrap());
+        assert!(encode(&0f64).unwrap() < encode(&f64::MIN_POSITIVE).unwrap());
 
-        assert!(encode(&(f64::MAX_VALUE.next_after(f64::NEG_INFINITY))).unwrap() < encode(&f64::MAX_VALUE).unwrap());
-        assert!(encode(&f64::MAX_VALUE).unwrap() < encode(&f64::INFINITY).unwrap());
+        assert!(encode(&(f64::MAX.next_after(f64::NEG_INFINITY))).unwrap() < encode(&f64::MAX).unwrap());
+        assert!(encode(&f64::MAX).unwrap() < encode(&f64::INFINITY).unwrap());
         assert!(encode(&f64::INFINITY).unwrap() < encode(&f64::NAN).unwrap());
     }
 

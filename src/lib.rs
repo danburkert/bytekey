@@ -59,22 +59,96 @@
 //! backwards-compatible manner (the different key types will sort seperately). If your enum has
 //! less than 16 variants, then the overhead is just a single byte in encoded output.
 
-#![feature(plugin, old_io, core)]
+#![feature(plugin, io, old_io, core)]
 #![cfg_attr(test, feature(std_misc))]
 #![cfg_attr(test, plugin(quickcheck_macros))]
 
+extern crate byteorder;
 extern crate "rustc-serialize" as rustc_serialize;
 
 #[cfg(test)] extern crate quickcheck;
 #[cfg(test)] extern crate rand;
 
 pub use encoder::Encoder;
-pub use encoder::EncodeResult;
-pub use encoder::encode;
-
 pub use decoder::Decoder;
-pub use decoder::DecodeResult;
+
+pub use encoder::encode;
 pub use decoder::decode;
 
 mod encoder;
 mod decoder;
+
+use std::{error, fmt, io, result};
+
+
+/// A short-hand for `result::Result<T, bytekey::decoder::Error>`.
+pub type Result<T> = result::Result<T, Error>;
+
+/// An error type for bytekey decoding and encoding.
+///
+/// This is a thin wrapper over the standard `io::Error` type. Namely, it
+/// adds two additional error cases: an unexpected EOF, and invalid utf8.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Error {
+
+    /// Variant representing that the underlying stream was read successfully but it did not contain
+    /// valid utf8 data.
+    NotUtf8,
+
+    /// Variant representing that the underlying stream returns less bytes, than are required to
+    /// decode a meaningful value.
+    UnexpectedEof,
+
+    /// Variant representing that an I/O error occurred.
+    Io(io::Error),
+}
+
+impl error::FromError<io::Error> for Error {
+    fn from_error(error: io::Error) -> Error { Error::Io(error) }
+}
+
+impl error::FromError<io::CharsError> for Error {
+    fn from_error(error: io::CharsError) -> Error {
+        match error {
+            io::CharsError::NotUtf8 => Error::NotUtf8,
+            io::CharsError::Other(error) => Error::Io(error),
+        }
+    }
+}
+
+impl error::FromError<byteorder::Error> for Error {
+    fn from_error(error: byteorder::Error) -> Error {
+        match error {
+            byteorder::Error::UnexpectedEOF => Error::UnexpectedEof,
+            byteorder::Error::Io(error) => Error::Io(error),
+        }
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Error::NotUtf8 => write!(f, "byte stream did not contain valid utf8"),
+            Error::UnexpectedEof => write!(f, "unexpected end of file"),
+            Error::Io(ref err) => err.fmt(f),
+        }
+    }
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        match *self {
+            Error::NotUtf8 => "invalid utf8 encoding",
+            Error::UnexpectedEof => "unexpected end of file",
+            Error::Io(ref err) => err.description(),
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            Error::NotUtf8 => None,
+            Error::UnexpectedEof => None,
+            Error::Io(ref err) => err.cause(),
+        }
+    }
+}
