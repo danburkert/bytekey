@@ -59,7 +59,7 @@
 //! backwards-compatible manner (the different key types will sort seperately). If your enum has
 //! less than 16 variants, then the overhead is just a single byte in encoded output.
 
-#![feature(plugin, io, core)]
+#![feature(plugin, old_io, core)]
 #![cfg_attr(test, feature(std_misc))]
 #![cfg_attr(test, plugin(quickcheck_macros))]
 

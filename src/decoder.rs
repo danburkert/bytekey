@@ -58,7 +58,6 @@ impl<R: io::Reader> Decoder<R> {
     }
 }
 
-
 impl<R: Reader> rustc_serialize::Decoder for Decoder<R> {
 
     type Error = io::IoError;
