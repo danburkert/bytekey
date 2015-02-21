@@ -1,8 +1,14 @@
-use rustc_serialize::{self, Encodable};
-use std::{i8, i16, i32, i64};
-use std::old_io as io;
+use std::{error, i8, i16, i32, i64};
+use std::io::{self, Write};
 use std::mem::transmute;
 use std::num::SignedInt;
+
+use byteorder::BigEndian;
+use byteorder::WriteBytesExt;
+use rustc_serialize;
+
+use Error;
+use Result;
 
 /// An encoder for serializing data to a byte format that preserves lexicographic sort order.
 ///
@@ -16,27 +22,27 @@ use std::num::SignedInt;
 ///
 /// ##### Unsigned isizeegers
 ///
-/// `u8`, `u16`, `u32`, and `u64` are encoded isizeo 1, 2, 4, and 8 bytes of output, respectively.
+/// `u8`, `u16`, `u32`, and `u64` are encoded into 1, 2, 4, and 8 bytes of output, respectively.
 /// Order is preserved by encoding the bytes in big-endian (most-significant bytes first) format.
 ///
-/// `usize` is variable-length encoded isizeo between 1 and 9 bytes.  Smaller magnitude values (closer
-/// to 0) will encode isizeo fewer bytes. See `emit_var_u64` for details on serialization
+/// `usize` is variable-length encoded into between 1 and 9 bytes.  Smaller magnitude values (closer
+/// to 0) will encode into fewer bytes. See `emit_var_u64` for details on serialization
 /// size and format.
 ///
 /// ##### Signed isizeegers
 ///
-/// `i8`, `i16`, `i32`, and `i64` are encoded isizeo 1, 2, 4, and 8 bytes of output, respectively.
+/// `i8`, `i16`, `i32`, and `i64` are encoded into 1, 2, 4, and 8 bytes of output, respectively.
 /// Order is preserved by taking the bitwise complement of the value, and encoding the resulting
 /// bytes in big-endian format.
 ///
-/// `isize` is variable-length encoded isizeo between 1 and 9 bytes. Smaller magnitude values (closer
-/// to 0) will encode isizeo fewer bytes. See `emit_var_i64` for details on serialization
+/// `isize` is variable-length encoded into between 1 and 9 bytes. Smaller magnitude values (closer
+/// to 0) will encode into fewer bytes. See `emit_var_i64` for details on serialization
 /// size and format.
 ///
 /// ##### Floating Poisize Numbers
 ///
-/// `f32` and `f64` are encoded isizeo 4 and 8 bytes of output, respectively. Order is preserved
-/// by encoding the value, or the bitwise complement of the value if negative, isizeo bytes in
+/// `f32` and `f64` are encoded into 4 and 8 bytes of output, respectively. Order is preserved
+/// by encoding the value, or the bitwise complement of the value if negative, into bytes in
 /// big-endian format. `NAN` values will sort after all other values. In general, it is
 /// unwise to use IEEE 754 floating poisize values in keys, because rounding errors are pervasive.
 /// It is typically hard or impossible to use an approximate 'epsilon' approach when using keys for
@@ -44,16 +50,16 @@ use std::num::SignedInt;
 ///
 /// ##### Characters
 ///
-/// Characters are serialized isizeo between 1 and 4 bytes of output.
+/// Characters are serialized into between 1 and 4 bytes of output.
 ///
 /// ##### Booleans
 ///
-/// Booleans are serialized isizeo a single byte of output. `false` values will sort before `true`
+/// Booleans are serialized into a single byte of output. `false` values will sort before `true`
 /// values.
 ///
 /// ##### Strings
 ///
-/// Strings are encoded isizeo their natural UTF8 representation plus a single null byte suffix.
+/// Strings are encoded into their natural UTF8 representation plus a single null byte suffix.
 /// In general, strings should not contain null bytes. The encoder will not check for null bytes,
 /// however their presence will break lexicographic sorting. The only exception to this rule is
 /// the case where the string is the final (or only) component of the key. If the string field
@@ -89,37 +95,18 @@ use std::num::SignedInt;
 /// 1 byte per input byte. The theoretical best-case overhead for serializing a raw (null
 /// containing) byte array in order-preserving format is 1 bit per byte, or 9 bytes of output for
 /// every 8 bytes of input.
-pub struct Encoder<'a> {
-    writer: &'a mut (io::Writer+'a),
+pub struct Encoder<W> {
+    writer: io::BufWriter<W>,
 }
 
-/// Encode data isizeo a byte vector.
-///
-/// #### Usage
-///
-/// ```
-/// # use bytekey::encode;
-/// assert_eq!(Ok(vec!(0x00, 0x00, 0x00, 0x2A)), encode(&42u32));
-/// assert_eq!(Ok(vec!(0x66, 0x69, 0x7A, 0x7A, 0x62, 0x75, 0x7A, 0x7A, 0x00)), encode(&"fizzbuzz"));
-/// assert_eq!(Ok(vec!(0x2A, 0x66, 0x69, 0x7A, 0x7A, 0x00)), encode(&(42u8, "fizz")));
-/// ```
-pub fn encode<'a, T : Encodable>(object: &T) -> Result<Vec<u8>, io::IoError>  {
-    let mut writer = Vec::new();
-    {
-        let mut encoder = Encoder::new(&mut writer);
-        try!(object.encode(&mut encoder));
-    }
-    Ok(writer)
-}
-
-impl<'a> Encoder<'a> {
+impl<W> Encoder<W> where W: Write {
 
     /// Creates a new ordered bytes encoder whose output will be written to the provided writer.
-    pub fn new(writer: &'a mut io::Writer) -> Encoder<'a> {
-        Encoder { writer: writer }
+    pub fn new(writer: W) -> Encoder<W> {
+        Encoder { writer: io::BufWriter::new(writer) }
     }
 
-    /// Encode a `u64` isizeo a variable number of bytes.
+    /// Encode a `u64` into a variable number of bytes.
     ///
     /// The variable-length encoding scheme uses between 1 and 9 bytes depending on the value.
     /// Smaller magnitude (closer to 0) `u64`s will encode to fewer bytes.
@@ -173,35 +160,35 @@ impl<'a> Encoder<'a> {
     ///         <td>9</td>
     ///     </tr>
     /// </table>
-    pub fn emit_var_u64(&mut self, val: u64) -> EncodeResult {
+    pub fn emit_var_u64(&mut self, val: u64) -> Result<()> {
         if val < 1 << 4 {
             self.writer.write_u8(val as u8)
         } else if val < 1 << 12 {
-            self.writer.write_be_u16((val as u16) | 1 << 12)
+            self.writer.write_u16::<BigEndian>((val as u16) | 1 << 12)
         } else if val < 1 << 20 {
             try!(self.writer.write_u8(((val >> 16) as u8) | 2 << 4));
-            self.writer.write_be_u16((val as u16))
+            self.writer.write_u16::<BigEndian>((val as u16))
         } else if val < 1 << 28 {
-            self.writer.write_be_u32((val as u32) | 3 << 28)
+            self.writer.write_u32::<BigEndian>((val as u32) | 3 << 28)
         } else if val < 1 << 36 {
             try!(self.writer.write_u8(((val >> 32) as u8) | 4 << 4));
-            self.writer.write_be_u32((val as u32))
+            self.writer.write_u32::<BigEndian>((val as u32))
         } else if val < 1 << 44 {
-            try!(self.writer.write_be_u16(((val >> 32) as u16) | 5 << 12));
-            self.writer.write_be_u32((val as u32))
+            try!(self.writer.write_u16::<BigEndian>(((val >> 32) as u16) | 5 << 12));
+            self.writer.write_u32::<BigEndian>((val as u32))
         } else if val < 1 << 52 {
             try!(self.writer.write_u8(((val >> 48) as u8) | 6 << 4));
-            try!(self.writer.write_be_u16((val >> 32) as u16));
-            self.writer.write_be_u32((val as u32))
+            try!(self.writer.write_u16::<BigEndian>((val >> 32) as u16));
+            self.writer.write_u32::<BigEndian>((val as u32))
         } else if val < 1 << 60 {
-            self.writer.write_be_u64((val as u64) | 7 << 60)
+            self.writer.write_u64::<BigEndian>((val as u64) | 7 << 60)
         } else {
             try!(self.writer.write_u8(8 << 4));
-            self.writer.write_be_u64(val)
-        }
+            self.writer.write_u64::<BigEndian>(val)
+        }.map_err(error::FromError::from_error)
     }
 
-    /// Encode an `i64` isizeo a variable number of bytes.
+    /// Encode an `i64` into a variable number of bytes.
     ///
     /// The variable-length encoding scheme uses between 1 and 9 bytes depending on the value.
     /// Smaller magnitude (closer to 0) `i64`s will encode to fewer bytes.
@@ -269,201 +256,221 @@ impl<'a> Encoder<'a> {
     ///         <td>9</td>
     ///     </tr>
     /// </table>
-    pub fn emit_var_i64(&mut self, v: i64) -> EncodeResult {
+    pub fn emit_var_i64(&mut self, v: i64) -> Result<()> {
         // The mask is 0 for positive input and u64::MAX for negative input
         let mask = (v >> 63) as u64;
         let val = v.abs() as u64 - (1 & mask);
-        println!("v: {}, val: {}", v, val);
         if val < 1 << 3 {
             let masked = (val | (0x10 << 3)) ^ mask;
             self.writer.write_u8(masked as u8)
         } else if val < 1 << 11 {
             let masked = (val | (0x11 << 11)) ^ mask;
-            self.writer.write_be_u16(masked as u16)
+            self.writer.write_u16::<BigEndian>(masked as u16)
         } else if val < 1 << 19 {
             let masked = (val | (0x12 << 19)) ^ mask;
             try!(self.writer.write_u8((masked >> 16) as u8));
-            self.writer.write_be_u16(masked as u16)
+            self.writer.write_u16::<BigEndian>(masked as u16)
         } else if val < 1 << 27 {
             let masked = (val | (0x13 << 27)) ^ mask;
-            self.writer.write_be_u32(masked as u32)
+            self.writer.write_u32::<BigEndian>(masked as u32)
         } else if val < 1 << 35 {
             let masked = (val | (0x14 << 35)) ^ mask;
             try!(self.writer.write_u8((masked >> 32) as u8));
-            self.writer.write_be_u32(masked as u32)
+            self.writer.write_u32::<BigEndian>(masked as u32)
         } else if val < 1 << 43 {
             let masked = (val | (0x15 << 43)) ^ mask;
-            try!(self.writer.write_be_u16((masked >> 32) as u16));
-            self.writer.write_be_u32(masked as u32)
+            try!(self.writer.write_u16::<BigEndian>((masked >> 32) as u16));
+            self.writer.write_u32::<BigEndian>(masked as u32)
         } else if val < 1 << 51 {
             let masked = (val | (0x16 << 51)) ^ mask;
             try!(self.writer.write_u8((masked >> 48) as u8));
-            try!(self.writer.write_be_u16((masked >> 32) as u16));
-            self.writer.write_be_u32(masked as u32)
+            try!(self.writer.write_u16::<BigEndian>((masked >> 32) as u16));
+            self.writer.write_u32::<BigEndian>(masked as u32)
         } else if val < 1 << 59 {
             let masked = (val | (0x17 << 59)) ^ mask;
-            self.writer.write_be_u64(masked as u64)
+            self.writer.write_u64::<BigEndian>(masked as u64)
         } else {
             try!(self.writer.write_u8((0x18 << 3) ^ mask as u8));
-            self.writer.write_be_u64(val ^ mask)
-        }
+            self.writer.write_u64::<BigEndian>(val ^ mask)
+        }.map_err(error::FromError::from_error)
     }
 }
 
-/// The error type returned by all encoding operations supported by `Encoder`.
-pub type EncodeResult = io::IoResult<()>;
+impl<W> rustc_serialize::Encoder for Encoder<W> where W: Write {
 
-impl<'a> rustc_serialize::Encoder for Encoder<'a> {
+    type Error = Error;
 
-    type Error = io::IoError;
+    fn emit_nil(&mut self) -> Result<()> {
+        self.writer.write_all([].as_slice()).map_err(error::FromError::from_error)
+    }
 
-    fn emit_nil(&mut self) -> EncodeResult { self.writer.write_all([].as_slice()) }
+    fn emit_u8(&mut self, v: u8) -> Result<()> {
+        self.writer.write_u8(v).map_err(error::FromError::from_error)
+    }
+    fn emit_u16(&mut self, v: u16) -> Result<()> {
+        self.writer.write_u16::<BigEndian>(v).map_err(error::FromError::from_error)
+    }
+    fn emit_u32(&mut self, v: u32) -> Result<()> {
+        self.writer.write_u32::<BigEndian>(v).map_err(error::FromError::from_error)
+    }
+    fn emit_u64(&mut self, v: u64) -> Result<()> {
+        self.writer.write_u64::<BigEndian>(v).map_err(error::FromError::from_error)
+    }
+    fn emit_usize(&mut self, v: usize) -> Result<()> {
+        self.emit_var_u64(v as u64).map_err(error::FromError::from_error)
+    }
 
-    fn emit_u8(&mut self, v: u8) -> EncodeResult  { self.writer.write_u8(v) }
-    fn emit_u16(&mut self, v: u16) -> EncodeResult { self.writer.write_be_u16(v) }
-    fn emit_u32(&mut self, v: u32) -> EncodeResult { self.writer.write_be_u32(v) }
-    fn emit_u64(&mut self, v: u64) -> EncodeResult { self.writer.write_be_u64(v) }
-    fn emit_usize(&mut self, v: usize) -> EncodeResult { self.emit_var_u64(v as u64) }
+    fn emit_i8(&mut self, v: i8) -> Result<()>  {
+        self.writer.write_i8(v ^ i8::MIN).map_err(error::FromError::from_error)
+    }
+    fn emit_i16(&mut self, v: i16) -> Result<()> {
+        self.writer.write_i16::<BigEndian>(v ^ i16::MIN).map_err(error::FromError::from_error)
+    }
+    fn emit_i32(&mut self, v: i32) -> Result<()> {
+        self.writer.write_i32::<BigEndian>(v ^ i32::MIN).map_err(error::FromError::from_error)
+    }
+    fn emit_i64(&mut self, v: i64) -> Result<()> {
+        self.writer.write_i64::<BigEndian>(v ^ i64::MIN).map_err(error::FromError::from_error)
+    }
+    fn emit_isize(&mut self, v: isize) -> Result<()> { self.emit_var_i64(v as i64) }
 
-    fn emit_i8(&mut self, v: i8) -> EncodeResult  { self.writer.write_i8(v ^ i8::MIN) }
-    fn emit_i16(&mut self, v: i16) -> EncodeResult { self.writer.write_be_i16(v ^ i16::MIN) }
-    fn emit_i32(&mut self, v: i32) -> EncodeResult { self.writer.write_be_i32(v ^ i32::MIN) }
-    fn emit_i64(&mut self, v: i64) -> EncodeResult { self.writer.write_be_i64(v ^ i64::MIN) }
-    fn emit_isize(&mut self, v: isize) -> EncodeResult { self.emit_var_i64(v as i64) }
+    fn emit_bool(&mut self, v: bool) -> Result<()> {
+        self.writer.write_u8(if v { 1 } else { 0 }).map_err(error::FromError::from_error)
+    }
 
-    fn emit_bool(&mut self, v: bool) -> EncodeResult { self.writer.write_u8(if v { 1 } else { 0 }) }
-
-    /// Encode an `f32` isizeo sortable bytes.
+    /// Encode an `f32` into sortable bytes.
     ///
     /// `NaN`s will sort greater than positive infinity. -0.0 will sort directly before +0.0.
     ///
     /// See [Hacker's Delight 2nd Edition](http://www.hackersdelight.org/) Section 17-3.
-    fn emit_f32(&mut self, v: f32) -> EncodeResult {
+    fn emit_f32(&mut self, v: f32) -> Result<()> {
         let val = unsafe { transmute::<f32, i32>(v) };
         let t = (val >> 31) | i32::MIN;
-        self.writer.write_be_i32(val ^ t)
+        self.writer.write_i32::<BigEndian>(val ^ t).map_err(error::FromError::from_error)
     }
 
-    /// Encode an `f64` isizeo sortable bytes.
+    /// Encode an `f64` into sortable bytes.
     ///
     /// `NaN`s will sort greater than positive infinity. -0.0 will sort directly before +0.0.
     ///
     /// See [Hacker's Delight 2nd Edition](http://www.hackersdelight.org/) Section 17-3.
-    fn emit_f64(&mut self, v: f64) -> EncodeResult {
+    fn emit_f64(&mut self, v: f64) -> Result<()> {
         let val = unsafe { transmute::<f64, i64>(v) };
         let t = (val >> 63) | i64::MIN;
-        self.writer.write_be_i64(val ^ t)
+        self.writer.write_i64::<BigEndian>(val ^ t).map_err(error::FromError::from_error)
     }
 
-    fn emit_char(&mut self, v: char) -> EncodeResult {
-        self.writer.write_char(v)
+    fn emit_char(&mut self, v: char) -> Result<()> {
+        let mut buf = [0u8; 4];
+        let n = v.encode_utf8(&mut buf).unwrap_or(0);
+        self.writer.write_all(&buf[..n]).map_err(error::FromError::from_error)
     }
 
-    fn emit_str(&mut self, v: &str) -> EncodeResult {
+    fn emit_str(&mut self, v: &str) -> Result<()> {
         try!(self.writer.write_all(v.as_bytes()));
-        self.writer.write_u8(0u8)
+        self.writer.write_u8(0u8).map_err(error::FromError::from_error)
     }
 
-    fn emit_enum<F>(&mut self, _name: &str, f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+    fn emit_enum<F>(&mut self, _name: &str, f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         f(self)
     }
     fn emit_enum_variant<F>(&mut self,
                             _name: &str,
                             id: usize,
                             _len: usize,
-                            f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+                            f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         try!(self.emit_usize(id));
         f(self)
     }
     fn emit_enum_variant_arg<F>(&mut self,
                                 _idx: usize,
-                                f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+                                f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         f(self)
     }
     fn emit_enum_struct_variant<F>(&mut self,
                                    _name: &str,
                                    id: usize,
                                    _len: usize,
-                                   f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+                                   f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         try!(self.emit_usize(id));
         f(self)
     }
     fn emit_enum_struct_variant_field<F>(&mut self,
                                          _name: &str,
                                          _idx: usize,
-                                         f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+                                         f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         f(self)
     }
 
     fn emit_struct<F>(&mut self, _name: &str, _len: usize, f: F)
-                      -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+                      -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         f(self)
     }
     fn emit_struct_field<F>(&mut self, _name: &str, _idx: usize, f: F)
-                            -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+                            -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         f(self)
     }
 
-    fn emit_tuple<F>(&mut self, _len: usize, f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+    fn emit_tuple<F>(&mut self, _len: usize, f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         f(self)
     }
-    fn emit_tuple_arg<F>(&mut self, _idx: usize, f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+    fn emit_tuple_arg<F>(&mut self, _idx: usize, f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         f(self)
     }
     fn emit_tuple_struct<F>(&mut self,
                             name: &str,
                             len: usize,
-                            f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+                            f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         self.emit_struct(name, len, f)
     }
     fn emit_tuple_struct_arg<F>(&mut self,
                                 idx: usize,
-                                f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+                                f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         self.emit_struct_field("", idx, f)
     }
 
-    fn emit_option<F>(&mut self, f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+    fn emit_option<F>(&mut self, f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         f(self)
     }
-    fn emit_option_none(&mut self) -> Result<(), io::IoError> {
+    fn emit_option_none(&mut self) -> Result<()> {
         self.emit_bool(false)
     }
-    fn emit_option_some<F>(&mut self, f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+    fn emit_option_some<F>(&mut self, f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         try!(self.emit_bool(true));
         f(self)
     }
 
-    fn emit_seq<F>(&mut self, _len: usize, _f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+    fn emit_seq<F>(&mut self, _len: usize, _f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
          unimplemented!()
     }
-    fn emit_seq_elt<F>(&mut self, _idx: usize, _f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+    fn emit_seq_elt<F>(&mut self, _idx: usize, _f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         unimplemented!()
     }
 
-    fn emit_map<F>(&mut self, _len: usize, _f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+    fn emit_map<F>(&mut self, _len: usize, _f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         unimplemented!()
     }
-    fn emit_map_elt_key<F>(&mut self, _idx: usize, _f: F) -> Result<(), io::IoError> {
+    fn emit_map_elt_key<F>(&mut self, _idx: usize, _f: F) -> Result<()> {
         unimplemented!()
     }
-    fn emit_map_elt_val<F>(&mut self, _idx: usize, _f: F) -> Result<(), io::IoError>
-            where F: FnOnce(&mut Self) -> Result<(), io::IoError> {
+    fn emit_map_elt_val<F>(&mut self, _idx: usize, _f: F) -> Result<()>
+            where F: FnOnce(&mut Self) -> Result<()> {
         unimplemented!()
     }
 }
@@ -478,7 +485,7 @@ pub mod test {
 
     use quickcheck::{Arbitrary, Gen};
 
-    use encoder::encode;
+    use encode;
 
     #[test]
     fn test_u8() {

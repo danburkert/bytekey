@@ -1,26 +1,14 @@
 use std::{error, i8, i16, i32, i64};
-use std::io::{self, Cursor, ReadExt};
+use std::io::{self, ReadExt};
 use std::iter::range_inclusive;
 use std::mem::transmute;
 
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
-use rustc_serialize::{self, Decodable};
+use rustc_serialize;
 
 use Error;
 use Result;
-
-/// Decode data from a byte vector.
-///
-/// #### Usage
-///
-/// ```
-/// # use bytekey::{encode, decode};
-/// assert_eq!(Ok(42u), decode::<usize>(encode(&42u).unwrap()));
-/// ```
-pub fn decode<T: Decodable>(bytes: Vec<u8>) -> Result<T> {
-    Decodable::decode(&mut Decoder::new(Cursor::new(bytes)))
-}
 
 /// A decoder for deserializing bytes in an order preserving format to a value.
 pub struct Decoder<R> {
@@ -60,7 +48,8 @@ impl<R: io::Read> Decoder<R> {
     }
 }
 
-impl<R: io::Read> rustc_serialize::Decoder for Decoder<R> {
+impl<R> rustc_serialize::Decoder for Decoder<R>
+where R: io::Read {
 
     type Error = Error;
 
@@ -237,8 +226,8 @@ mod test {
     use std::{f32, f64};
     use std::num::Int;
 
-    use decoder::decode;
-    use encoder::encode;
+    use decode;
+    use encode;
     use encoder::test::{TestStruct, TestEnum};
 
     #[quickcheck]

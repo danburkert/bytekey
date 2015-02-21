@@ -59,7 +59,7 @@
 //! backwards-compatible manner (the different key types will sort seperately). If your enum has
 //! less than 16 variants, then the overhead is just a single byte in encoded output.
 
-#![feature(plugin, io, old_io, core)]
+#![feature(core, plugin, io, unicode)]
 #![cfg_attr(test, feature(std_misc))]
 #![cfg_attr(test, plugin(quickcheck_macros))]
 
@@ -72,14 +72,42 @@ extern crate "rustc-serialize" as rustc_serialize;
 pub use encoder::Encoder;
 pub use decoder::Decoder;
 
-pub use encoder::encode;
-pub use decoder::decode;
-
 mod encoder;
 mod decoder;
 
+use rustc_serialize::{Encodable, Decodable};
 use std::{error, fmt, io, result};
 
+/// Encode data isizeo a byte vector.
+///
+/// #### Usage
+///
+/// ```
+/// # use bytekey::encode;
+/// assert_eq!(Ok(vec!(0x00, 0x00, 0x00, 0x2A)), encode(&42u32));
+/// assert_eq!(Ok(vec!(0x66, 0x69, 0x7A, 0x7A, 0x62, 0x75, 0x7A, 0x7A, 0x00)), encode(&"fizzbuzz"));
+/// assert_eq!(Ok(vec!(0x2A, 0x66, 0x69, 0x7A, 0x7A, 0x00)), encode(&(42u8, "fizz")));
+/// ```
+pub fn encode<T : Encodable>(object: &T) -> Result<Vec<u8>>  {
+    let mut writer = Vec::new();
+    {
+        let mut encoder = Encoder::new(&mut writer);
+        try!(object.encode(&mut encoder));
+    }
+    Ok(writer)
+}
+
+/// Decode data from a byte vector.
+///
+/// #### Usage
+///
+/// ```
+/// # use bytekey::{encode, decode};
+/// assert_eq!(Ok(42u), decode::<usize>(encode(&42u).unwrap()));
+/// ```
+pub fn decode<T: Decodable>(bytes: Vec<u8>) -> Result<T> {
+    Decodable::decode(&mut Decoder::new(io::Cursor::new(bytes)))
+}
 
 /// A short-hand for `result::Result<T, bytekey::decoder::Error>`.
 pub type Result<T> = result::Result<T, Error>;
