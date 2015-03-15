@@ -1,5 +1,5 @@
 use std::{error, i8, i16, i32, i64};
-use std::io::{self, ReadExt};
+use std::io::{self, Read};
 use std::iter::range_inclusive;
 use std::mem::transmute;
 
@@ -223,7 +223,7 @@ where R: io::Read {
 #[cfg(test)]
 mod test {
 
-    use std::{f32, f64};
+    use std::{f32, f64, isize, usize};
     use std::num::Int;
 
     use decode;
@@ -262,7 +262,7 @@ mod test {
             2usize.pow(44) - 1, 2usize.pow(44),
             2usize.pow(52) - 1, 2usize.pow(52),
             2usize.pow(60) - 1, 2usize.pow(60),
-            2usize.pow(64) - 1,
+            usize::MAX,
         ];
         for val in values.iter() {
             assert_eq!(*val, decode(encode(val).unwrap()).unwrap());
@@ -301,7 +301,7 @@ mod test {
             -2isize.pow(43) - 1, -2isize.pow(43), 2isize.pow(43) - 1, 2isize.pow(43),
             -2isize.pow(51) - 1, -2isize.pow(51), 2isize.pow(51) - 1, 2isize.pow(51),
             -2isize.pow(59) - 1, -2isize.pow(59), 2isize.pow(59) - 1, 2isize.pow(59),
-            -2isize.pow(63), 2isize.pow(63) - 1
+            isize::MIN, isize::MAX,
         ];
         for val in values.iter() {
             assert_eq!(*val, decode(encode(val).unwrap()).unwrap());

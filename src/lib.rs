@@ -59,7 +59,7 @@
 //! backwards-compatible manner (the different key types will sort seperately). If your enum has
 //! less than 16 variants, then the overhead is just a single byte in encoded output.
 
-#![feature(core, plugin, io, unicode)]
+#![feature(core, custom_attribute, io, plugin, unicode)]
 #![cfg_attr(test, feature(std_misc))]
 #![cfg_attr(test, plugin(quickcheck_macros))]
 
@@ -77,6 +77,7 @@ mod decoder;
 
 use rustc_serialize::{Encodable, Decodable};
 use std::{error, fmt, io, result};
+use std::error::Error as StdError;
 
 /// Encode data isizeo a byte vector.
 ///
