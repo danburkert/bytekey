@@ -1,10 +1,21 @@
+language: rust
+sudo: required
+rust:
+  - nightly
+
+before_script:
+  - |
+      pip install 'travis-cargo<0.2' --user &&
+      export PATH=$HOME/.local/bin:$PATH
+
+script:
+  - |
+      travis-cargo build &&
+      travis-cargo test &&
+      travis-cargo --only nightly doc
+after_success:
+  - travis-cargo --only nightly doc-upload
+
 env:
   global:
-    - secure: v/dNYWxhqBBBG2qh2huWUrCbsnrmVXmpwRvxTvgvwJ46cXAC2kztLavplX5k8FXmDkCoTHOt3y0O8uP6WgGuRtZ42zGwyfFN8l8hO+deWFWQwrhgBi7J2vnFZZA2fGXOIXkfNVmyZ1KcMN5aebrqneTOHgIpx7Npvaub1GtPcIg=
-language: rust
-script:
-  - cargo build -v
-  - cargo test -v
-  - cargo doc
-after_script:
-  - mv target/doc . && curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
+    - secure: h/8OpyTeeIWqkO9evO6U8rcgLDPL3o8cN1zPauPQTthSCQ6TYJfPvjdS25ClUdprXdXZQCAbZqgO006hPZEoqgRClMgPIiy1656A6Q3+L4VpxAh+B5KgeDfXsHhJ9+anj5D0e0z63lXZXCXC6/3N6WXgUDw0mjGZEsKvQW8WQq0=
