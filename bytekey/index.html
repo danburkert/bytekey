@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `bytekey` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, bytekey">
+
+    <title>bytekey - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../main.css">
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <section class="sidebar">
+        
+        <p class='location'></p><script>window.sidebarCurrent = {name: 'bytekey', ty: 'mod', relpath: '../'};</script>
+    </section>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press 'S' to search, '?' for more options..."
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Crate <a class='mod' href=''>bytekey</a></span><span class='out-of-band'><span id='render-detail'>
+            <a id="toggle-all-docs" href="#" title="collapse all docs">[&minus;]</a>
+        </span><a id='src-0' class='srclink' href='../src/bytekey/lib.rs.html#1-181' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>Binary encoding for Rust values which preserves lexicographic sort order. Order-preserving
+encoding is useful for creating keys for sorted key-value stores with byte string typed keys,
+such as <a href="https://github.com/google/leveldb">leveldb</a>. <code>bytekey</code> attempts to encode values into
+the fewest number of bytes possible while preserving ordering. Type information is <em>not</em>
+serialized alongside values, and thus the type of serialized data must be known in order to
+perform decoding (<code>bytekey</code> does not implement a self-describing format).</p>
+
+<h4 id="supported-data-types" class='section-header'><a
+                           href="#supported-data-types">Supported Data Types</a></h4>
+<p><code>bytekey</code> encoding currently supports all Rust primitives, strings, options, structs, enums, and
+tuples. <code>isize</code> and <code>usize</code> types are variable-length encoded. Sequence (<code>Vec</code>) and map types are
+not currently supported (but could be in the future). See <code>Encoder</code> for details on the
+serialization format.</p>
+
+<h4 id="usage" class='section-header'><a
+                           href="#usage">Usage</a></h4><pre id='rust-example-rendered' class='rust '>
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>rustc_serialize</span>;
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>bytekey</span>;
+<span class='kw'>use</span> <span class='ident'>bytekey</span>::{<span class='ident'>encode</span>, <span class='ident'>decode</span>};
+
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>RustcEncodable</span>, <span class='ident'>RustcDecodable</span>, <span class='ident'>Show</span>, <span class='ident'>PartialEq</span>)]</span>
+<span class='kw'>struct</span> <span class='ident'>MyKey</span> { <span class='ident'>a</span>: <span class='ident'>u32</span>, <span class='ident'>b</span>: <span class='ident'>String</span> }
+
+<span class='kw'>let</span> <span class='ident'>a</span> <span class='op'>=</span> <span class='ident'>MyKey</span> { <span class='ident'>a</span>: <span class='number'>1</span>, <span class='ident'>b</span>: <span class='string'>&quot;foo&quot;</span>.<span class='ident'>to_string</span>() };
+<span class='kw'>let</span> <span class='ident'>b</span> <span class='op'>=</span> <span class='ident'>MyKey</span> { <span class='ident'>a</span>: <span class='number'>2</span>, <span class='ident'>b</span>: <span class='string'>&quot;foo&quot;</span>.<span class='ident'>to_string</span>() };
+<span class='kw'>let</span> <span class='ident'>c</span> <span class='op'>=</span> <span class='ident'>MyKey</span> { <span class='ident'>a</span>: <span class='number'>2</span>, <span class='ident'>b</span>: <span class='string'>&quot;fooz&quot;</span>.<span class='ident'>to_string</span>() };
+
+<span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>encode</span>(<span class='kw-2'>&amp;</span><span class='ident'>a</span>).<span class='ident'>unwrap</span>() <span class='op'>&lt;</span> <span class='ident'>encode</span>(<span class='kw-2'>&amp;</span><span class='ident'>b</span>).<span class='ident'>unwrap</span>());
+<span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>encode</span>(<span class='kw-2'>&amp;</span><span class='ident'>b</span>).<span class='ident'>unwrap</span>() <span class='op'>&lt;</span> <span class='ident'>encode</span>(<span class='kw-2'>&amp;</span><span class='ident'>c</span>).<span class='ident'>unwrap</span>());
+<span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>a</span>, <span class='ident'>decode</span>(<span class='ident'>encode</span>(<span class='kw-2'>&amp;</span><span class='ident'>a</span>).<span class='ident'>unwrap</span>()).<span class='ident'>unwrap</span>());
+</pre>
+
+<h4 id="type-evolution" class='section-header'><a
+                           href="#type-evolution">Type Evolution</a></h4>
+<p>In general, the exact type of a serialized value must be known in order to correctly deserialize
+it. For structs and enums, the type is effectively frozen once any values of the type have been
+serialized: changes to the struct or enum will cause deserialization of already encoded values
+to fail or return incorrect values. The only exception is adding adding new variants to the end
+of an existing enum. Enum variants may <em>not</em> change type, be removed, or be reordered. All
+changes to structs, including adding, removing, reordering, or changing the type of a field are
+forbidden.</p>
+
+<p>These restrictions lead to a few best-practices when using <code>bytekey</code> encoding:</p>
+
+<ul>
+<li>Don&#39;t use <code>bytekey</code> unless you need lexicographic ordering of encoded values! A more
+general encoding library such as <a href="https://github.com/dwrensha/capnproto-rust">Cap&#39;n Proto</a> or
+<a href="https://github.com/TyOverby/binary-encode">binary-encode</a> will serve you better if this
+feature is not necessary.</li>
+<li>If you persist encoded values for longer than the life of a process (i.e. you write the
+encoded values to a file or a database), consider using an enum as a top-level wrapper type.
+This will allow you to seamlessly add a new variant when you need to change the key format in a
+backwards-compatible manner (the different key types will sort seperately). If your enum has
+less than 16 variants, then the overhead is just a single byte in encoded output.</li>
+</ul>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                    <tr class=' module-item'>
+                        <td><a class='struct' href='struct.Decoder.html'
+                               title='bytekey::Decoder'>Decoder</a></td>
+                        <td class='docblock short'>
+                             <p>A decoder for deserializing bytes in an order preserving format to a value.</p>
+
+                        </td>
+                    </tr>
+                
+                    <tr class=' module-item'>
+                        <td><a class='struct' href='struct.Encoder.html'
+                               title='bytekey::Encoder'>Encoder</a></td>
+                        <td class='docblock short'>
+                             <p>An encoder for serializing data to a byte format that preserves lexicographic sort order.</p>
+
+                        </td>
+                    </tr>
+                </table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                    <tr class=' module-item'>
+                        <td><a class='enum' href='enum.Error.html'
+                               title='bytekey::Error'>Error</a></td>
+                        <td class='docblock short'>
+                             <p>An error type for bytekey decoding and encoding.</p>
+
+                        </td>
+                    </tr>
+                </table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                    <tr class=' module-item'>
+                        <td><a class='fn' href='fn.decode.html'
+                               title='bytekey::decode'>decode</a></td>
+                        <td class='docblock short'>
+                             <p>Decode data from a byte vector.</p>
+
+                        </td>
+                    </tr>
+                
+                    <tr class=' module-item'>
+                        <td><a class='fn' href='fn.encode.html'
+                               title='bytekey::encode'>encode</a></td>
+                        <td class='docblock short'>
+                             <p>Encode data into a byte vector.</p>
+
+                        </td>
+                    </tr>
+                </table><h2 id='types' class='section-header'><a href="#types">Type Definitions</a></h2>
+<table>
+                    <tr class=' module-item'>
+                        <td><a class='type' href='type.Result.html'
+                               title='bytekey::Result'>Result</a></td>
+                        <td class='docblock short'>
+                             <p>A short-hand for <code>result::Result&lt;T, bytekey::decoder::Error&gt;</code>.</p>
+
+                        </td>
+                    </tr>
+                </table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <div id="help" class="hidden">
+        <div class="shortcuts">
+            <h1>Keyboard shortcuts</h1>
+            <dl>
+                <dt>?</dt>
+                <dd>Show this help dialog</dd>
+                <dt>S</dt>
+                <dd>Focus the search field</dd>
+                <dt>&larrb;</dt>
+                <dd>Move up in search results</dd>
+                <dt>&rarrb;</dt>
+                <dd>Move down in search results</dd>
+                <dt>&#9166;</dt>
+                <dd>Go to active search result</dd>
+            </dl>
+        </div>
+        <div class="infos">
+            <h1>Search tricks</h1>
+            <p>
+                Prefix searches with a type followed by a colon (e.g.
+                <code>fn:</code>) to restrict the search to a given type.
+            </p>
+            <p>
+                Accepted types are: <code>fn</code>, <code>mod</code>,
+                <code>struct</code>, <code>enum</code>,
+                <code>trait</code>, <code>typedef</code> (or
+                <code>tdef</code>).
+            </p>
+        </div>
+    </div>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "bytekey";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script async src="../search-index.js"></script>
+</body>
+</html>
