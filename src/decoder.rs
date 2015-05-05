@@ -1,7 +1,8 @@
-use std::{error, i8, i16, i32, i64};
+use std::{i8, i16, i32, i64};
 use std::io::{self, Read};
 use std::iter::range_inclusive;
 use std::mem::transmute;
+use std::num::wrapping::OverflowingOps;
 
 use byteorder::BigEndian;
 use byteorder::ReadBytesExt;
@@ -25,10 +26,10 @@ impl<R: io::Read> Decoder<R> {
     pub fn read_var_u64(&mut self) -> Result<u64> {
         let header = try!(self.reader.read_u8());
         let n = header >> 4;
-        let mut val = ((header & 0x0F) as u64) << (n as usize * 8);
+        let (mut val, _) = ((header & 0x0F) as u64).overflowing_shl(n as u32 * 8);
         for i in range_inclusive(1, n) {
             let byte = try!(self.reader.read_u8());
-            val += (byte as u64) << ((n - i) as usize * 8);
+            val += (byte as u64) << ((n - i) * 8);
         }
         Ok(val)
     }
@@ -37,10 +38,10 @@ impl<R: io::Read> Decoder<R> {
         let header = try!(self.reader.read_u8());
         let mask = ((header ^ 0x80) as i8 >> 7) as u8;
         let n = ((header >> 3) ^ mask) & 0x0F;
-        let mut val = (((header ^ mask) & 0x07) as u64) << (n as usize * 8);
+        let (mut val, _) = (((header ^ mask) & 0x07) as u64).overflowing_shl(n as u32 * 8);
         for i in range_inclusive(1, n) {
             let byte = try!(self.reader.read_u8());
-            val += ((byte ^ mask) as u64) << ((n - i) as usize * 8);
+            val += ((byte ^ mask) as u64) << ((n - i) * 8);
         }
         let final_mask = (((mask as i64) << 63) >> 63) as u64;
         val ^= final_mask;
@@ -56,16 +57,16 @@ where R: io::Read {
     fn read_nil(&mut self) -> Result<()> { Ok(()) }
 
     fn read_u8(&mut self) -> Result<u8> {
-        self.reader.read_u8().map_err(error::FromError::from_error)
+        self.reader.read_u8().map_err(From::from)
     }
     fn read_u16(&mut self) -> Result<u16> {
-        self.reader.read_u16::<BigEndian>().map_err(error::FromError::from_error)
+        self.reader.read_u16::<BigEndian>().map_err(From::from)
     }
     fn read_u32(&mut self) -> Result<u32> {
-        self.reader.read_u32::<BigEndian>().map_err(error::FromError::from_error)
+        self.reader.read_u32::<BigEndian>().map_err(From::from)
     }
     fn read_u64(&mut self) -> Result<u64> {
-        self.reader.read_u64::<BigEndian>().map_err(error::FromError::from_error)
+        self.reader.read_u64::<BigEndian>().map_err(From::from)
     }
     fn read_usize(&mut self) -> Result<usize> {
         let val = try!(self.read_var_u64());
@@ -216,7 +217,7 @@ where R: io::Read {
     }
 
     fn error(&mut self, err: &str) -> Error {
-        Error::Io(io::Error::new(io::ErrorKind::Other, "", Some(err.to_string())))
+        Error::Io(io::Error::new(io::ErrorKind::Other, err))
     }
 }
 
@@ -224,10 +225,8 @@ where R: io::Read {
 mod test {
 
     use std::{f32, f64, isize, usize};
-    use std::num::Int;
 
-    use decode;
-    use encode;
+    use {encode, decode};
     use encoder::test::{TestStruct, TestEnum};
 
     #[quickcheck]
@@ -265,6 +264,7 @@ mod test {
             usize::MAX,
         ];
         for val in values.iter() {
+            println!("testing value: {}", val);
             assert_eq!(*val, decode(encode(val).unwrap()).unwrap());
         }
     }

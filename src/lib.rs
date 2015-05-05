@@ -1,7 +1,3 @@
-//! [![Build Status](https://travis-ci.org/danburkert/bytekey.svg?branch=master)](https://travis-ci.org/danburkert/bytekey)
-//!
-//! [GitHub](https://github.com/danburkert/bytekey)
-//!
 //! Binary encoding for Rust values which preserves lexicographic sort order. Order-preserving
 //! encoding is useful for creating keys for sorted key-value stores with byte string typed keys,
 //! such as [leveldb](https://github.com/google/leveldb). `bytekey` attempts to encode values into
@@ -19,7 +15,7 @@
 //! #### Usage
 //!
 //! ```
-//! extern crate "rustc-serialize" as rustc_serialize;
+//! extern crate rustc_serialize;
 //! extern crate bytekey;
 //! use bytekey::{encode, decode};
 //!
@@ -64,7 +60,7 @@
 #![cfg_attr(test, plugin(quickcheck_macros))]
 
 extern crate byteorder;
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 
 #[cfg(test)] extern crate quickcheck;
 #[cfg(test)] extern crate rand;
@@ -79,21 +75,22 @@ use rustc_serialize::{Encodable, Decodable};
 use std::{error, fmt, io, result};
 use std::error::Error as StdError;
 
-/// Encode data isizeo a byte vector.
+/// Encode data into a byte vector.
 ///
 /// #### Usage
 ///
 /// ```
 /// # use bytekey::encode;
-/// assert_eq!(Ok(vec!(0x00, 0x00, 0x00, 0x2A)), encode(&42u32));
-/// assert_eq!(Ok(vec!(0x66, 0x69, 0x7A, 0x7A, 0x62, 0x75, 0x7A, 0x7A, 0x00)), encode(&"fizzbuzz"));
-/// assert_eq!(Ok(vec!(0x2A, 0x66, 0x69, 0x7A, 0x7A, 0x00)), encode(&(42u8, "fizz")));
+/// assert_eq!(vec!(0x00, 0x00, 0x00, 0x2A), encode(&42u32).unwrap());
+/// assert_eq!(vec!(0x66, 0x69, 0x7A, 0x7A, 0x62, 0x75, 0x7A, 0x7A, 0x00), encode(&"fizzbuzz").unwrap());
+/// assert_eq!(vec!(0x2A, 0x66, 0x69, 0x7A, 0x7A, 0x00), encode(&(42u8, "fizz")).unwrap());
 /// ```
-pub fn encode<T : Encodable>(object: &T) -> Result<Vec<u8>>  {
+pub fn encode<T>(value: &T) -> Result<Vec<u8>>
+where T: Encodable {
     let mut writer = Vec::new();
     {
         let mut encoder = Encoder::new(&mut writer);
-        try!(object.encode(&mut encoder));
+        try!(value.encode(&mut encoder));
     }
     Ok(writer)
 }
@@ -104,9 +101,10 @@ pub fn encode<T : Encodable>(object: &T) -> Result<Vec<u8>>  {
 ///
 /// ```
 /// # use bytekey::{encode, decode};
-/// assert_eq!(Ok(42u), decode::<usize>(encode(&42u).unwrap()));
+/// assert_eq!(42usize, decode::<usize>(encode(&42usize).unwrap()).unwrap());
 /// ```
-pub fn decode<T: Decodable>(bytes: Vec<u8>) -> Result<T> {
+pub fn decode<T>(bytes: Vec<u8>) -> Result<T>
+where T: Decodable {
     Decodable::decode(&mut Decoder::new(io::Cursor::new(bytes)))
 }
 
@@ -117,7 +115,7 @@ pub type Result<T> = result::Result<T, Error>;
 ///
 /// This is a thin wrapper over the standard `io::Error` type. Namely, it
 /// adds two additional error cases: an unexpected EOF, and invalid utf8.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub enum Error {
 
     /// Variant representing that the underlying stream was read successfully but it did not contain
@@ -132,12 +130,12 @@ pub enum Error {
     Io(io::Error),
 }
 
-impl error::FromError<io::Error> for Error {
-    fn from_error(error: io::Error) -> Error { Error::Io(error) }
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Error { Error::Io(error) }
 }
 
-impl error::FromError<io::CharsError> for Error {
-    fn from_error(error: io::CharsError) -> Error {
+impl From<io::CharsError> for Error {
+    fn from(error: io::CharsError) -> Error {
         match error {
             io::CharsError::NotUtf8 => Error::NotUtf8,
             io::CharsError::Other(error) => Error::Io(error),
@@ -145,8 +143,8 @@ impl error::FromError<io::CharsError> for Error {
     }
 }
 
-impl error::FromError<byteorder::Error> for Error {
-    fn from_error(error: byteorder::Error) -> Error {
+impl From<byteorder::Error> for Error {
+    fn from(error: byteorder::Error) -> Error {
         match error {
             byteorder::Error::UnexpectedEOF => Error::UnexpectedEof,
             byteorder::Error::Io(error) => Error::Io(error),

@@ -1,7 +1,6 @@
-use std::{error, i8, i16, i32, i64};
+use std::{i8, i16, i32, i64};
 use std::io::{self, Write};
 use std::mem::transmute;
-use std::num::SignedInt;
 
 use byteorder::BigEndian;
 use byteorder::WriteBytesExt;
@@ -20,7 +19,7 @@ use Result;
 ///
 /// #### Supported Data Types
 ///
-/// ##### Unsigned isizeegers
+/// ##### Unsigned Integers
 ///
 /// `u8`, `u16`, `u32`, and `u64` are encoded into 1, 2, 4, and 8 bytes of output, respectively.
 /// Order is preserved by encoding the bytes in big-endian (most-significant bytes first) format.
@@ -29,7 +28,7 @@ use Result;
 /// to 0) will encode into fewer bytes. See `emit_var_u64` for details on serialization
 /// size and format.
 ///
-/// ##### Signed isizeegers
+/// ##### Signed Integers
 ///
 /// `i8`, `i16`, `i32`, and `i64` are encoded into 1, 2, 4, and 8 bytes of output, respectively.
 /// Order is preserved by taking the bitwise complement of the value, and encoding the resulting
@@ -39,12 +38,12 @@ use Result;
 /// to 0) will encode into fewer bytes. See `emit_var_i64` for details on serialization
 /// size and format.
 ///
-/// ##### Floating Poisize Numbers
+/// ##### Floating Point Numbers
 ///
 /// `f32` and `f64` are encoded into 4 and 8 bytes of output, respectively. Order is preserved
 /// by encoding the value, or the bitwise complement of the value if negative, into bytes in
 /// big-endian format. `NAN` values will sort after all other values. In general, it is
-/// unwise to use IEEE 754 floating poisize values in keys, because rounding errors are pervasive.
+/// unwise to use IEEE 754 floating point values in keys, because rounding errors are pervasive.
 /// It is typically hard or impossible to use an approximate 'epsilon' approach when using keys for
 /// lookup.
 ///
@@ -78,7 +77,7 @@ use Result;
 ///
 /// ##### Enums
 ///
-/// Enums are encoded with a variable-length unsigned-isizeeger variant tag, plus the consituent
+/// Enums are encoded with a variable-length unsigned-integer variant tag, plus the consituent
 /// fields in the case of an enum-struct. The tag adds an overhead of between 1 and 9 bytes (it
 /// will be a single byte for up to 16 variants). This encoding allows more enum variants to be
 /// added in a backwards-compatible manner, as long as variants are not removed and the variant
@@ -95,7 +94,7 @@ use Result;
 /// 1 byte per input byte. The theoretical best-case overhead for serializing a raw (null
 /// containing) byte array in order-preserving format is 1 bit per byte, or 9 bytes of output for
 /// every 8 bytes of input.
-pub struct Encoder<W> {
+pub struct Encoder<W> where W: Write {
     writer: io::BufWriter<W>,
 }
 
@@ -185,7 +184,7 @@ impl<W> Encoder<W> where W: Write {
         } else {
             try!(self.writer.write_u8(8 << 4));
             self.writer.write_u64::<BigEndian>(val)
-        }.map_err(error::FromError::from_error)
+        }.map_err(From::from)
     }
 
     /// Encode an `i64` into a variable number of bytes.
@@ -292,7 +291,7 @@ impl<W> Encoder<W> where W: Write {
         } else {
             try!(self.writer.write_u8((0x18 << 3) ^ mask as u8));
             self.writer.write_u64::<BigEndian>(val ^ mask)
-        }.map_err(error::FromError::from_error)
+        }.map_err(From::from)
     }
 }
 
@@ -301,41 +300,41 @@ impl<W> rustc_serialize::Encoder for Encoder<W> where W: Write {
     type Error = Error;
 
     fn emit_nil(&mut self) -> Result<()> {
-        self.writer.write_all([].as_slice()).map_err(error::FromError::from_error)
+        self.writer.write_all(&[]).map_err(From::from)
     }
 
     fn emit_u8(&mut self, v: u8) -> Result<()> {
-        self.writer.write_u8(v).map_err(error::FromError::from_error)
+        self.writer.write_u8(v).map_err(From::from)
     }
     fn emit_u16(&mut self, v: u16) -> Result<()> {
-        self.writer.write_u16::<BigEndian>(v).map_err(error::FromError::from_error)
+        self.writer.write_u16::<BigEndian>(v).map_err(From::from)
     }
     fn emit_u32(&mut self, v: u32) -> Result<()> {
-        self.writer.write_u32::<BigEndian>(v).map_err(error::FromError::from_error)
+        self.writer.write_u32::<BigEndian>(v).map_err(From::from)
     }
     fn emit_u64(&mut self, v: u64) -> Result<()> {
-        self.writer.write_u64::<BigEndian>(v).map_err(error::FromError::from_error)
+        self.writer.write_u64::<BigEndian>(v).map_err(From::from)
     }
     fn emit_usize(&mut self, v: usize) -> Result<()> {
-        self.emit_var_u64(v as u64).map_err(error::FromError::from_error)
+        self.emit_var_u64(v as u64).map_err(From::from)
     }
 
     fn emit_i8(&mut self, v: i8) -> Result<()>  {
-        self.writer.write_i8(v ^ i8::MIN).map_err(error::FromError::from_error)
+        self.writer.write_i8(v ^ i8::MIN).map_err(From::from)
     }
     fn emit_i16(&mut self, v: i16) -> Result<()> {
-        self.writer.write_i16::<BigEndian>(v ^ i16::MIN).map_err(error::FromError::from_error)
+        self.writer.write_i16::<BigEndian>(v ^ i16::MIN).map_err(From::from)
     }
     fn emit_i32(&mut self, v: i32) -> Result<()> {
-        self.writer.write_i32::<BigEndian>(v ^ i32::MIN).map_err(error::FromError::from_error)
+        self.writer.write_i32::<BigEndian>(v ^ i32::MIN).map_err(From::from)
     }
     fn emit_i64(&mut self, v: i64) -> Result<()> {
-        self.writer.write_i64::<BigEndian>(v ^ i64::MIN).map_err(error::FromError::from_error)
+        self.writer.write_i64::<BigEndian>(v ^ i64::MIN).map_err(From::from)
     }
     fn emit_isize(&mut self, v: isize) -> Result<()> { self.emit_var_i64(v as i64) }
 
     fn emit_bool(&mut self, v: bool) -> Result<()> {
-        self.writer.write_u8(if v { 1 } else { 0 }).map_err(error::FromError::from_error)
+        self.writer.write_u8(if v { 1 } else { 0 }).map_err(From::from)
     }
 
     /// Encode an `f32` into sortable bytes.
@@ -346,7 +345,7 @@ impl<W> rustc_serialize::Encoder for Encoder<W> where W: Write {
     fn emit_f32(&mut self, v: f32) -> Result<()> {
         let val = unsafe { transmute::<f32, i32>(v) };
         let t = (val >> 31) | i32::MIN;
-        self.writer.write_i32::<BigEndian>(val ^ t).map_err(error::FromError::from_error)
+        self.writer.write_i32::<BigEndian>(val ^ t).map_err(From::from)
     }
 
     /// Encode an `f64` into sortable bytes.
@@ -357,18 +356,18 @@ impl<W> rustc_serialize::Encoder for Encoder<W> where W: Write {
     fn emit_f64(&mut self, v: f64) -> Result<()> {
         let val = unsafe { transmute::<f64, i64>(v) };
         let t = (val >> 63) | i64::MIN;
-        self.writer.write_i64::<BigEndian>(val ^ t).map_err(error::FromError::from_error)
+        self.writer.write_i64::<BigEndian>(val ^ t).map_err(From::from)
     }
 
     fn emit_char(&mut self, v: char) -> Result<()> {
         let mut buf = [0u8; 4];
         let n = v.encode_utf8(&mut buf).unwrap_or(0);
-        self.writer.write_all(&buf[..n]).map_err(error::FromError::from_error)
+        self.writer.write_all(&buf[..n]).map_err(From::from)
     }
 
     fn emit_str(&mut self, v: &str) -> Result<()> {
         try!(self.writer.write_all(v.as_bytes()));
-        self.writer.write_u8(0u8).map_err(error::FromError::from_error)
+        self.writer.write_u8(0u8).map_err(From::from)
     }
 
     fn emit_enum<F>(&mut self, _name: &str, f: F) -> Result<()>
@@ -478,13 +477,11 @@ impl<W> rustc_serialize::Encoder for Encoder<W> where W: Write {
 #[cfg(test)]
 pub mod test {
 
-    use rand::Rng;
     use std::{f32, f64, i16, i8, isize, u16, u8, usize};
-
     use std::iter::range_inclusive;
-    use std::num::{Int, Float};
 
     use quickcheck::{Arbitrary, Gen};
+    use rand::Rng;
 
     use encode;
 
@@ -796,7 +793,7 @@ pub mod test {
                 TestEnum::C(Arbitrary::arbitrary(g))
             ];
 
-            g.shuffle(variants.as_mut_slice());
+            g.shuffle(&mut variants[..]);
             variants.pop().unwrap()
         }
     }
