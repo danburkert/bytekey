@@ -1,20 +1,18 @@
 [package]
-
 name = "bytekey"
 version = "0.4.2"
 authors = ["Dan Burkert <dan@danburkert.com>"]
 license = "Apache-2.0"
-
 description = "lexicographic sort-order preserving binary encoding"
 repository = "https://github.com/danburkert/bytekey.git"
 readme = "README.md"
 keywords = ["encoding", "serialization", "library"]
 
 [dependencies]
-  byteorder = "*"
-  rustc-serialize = "*"
+byteorder = "1"
+serde = "1"
+utf-8 = "0.7"
 
 [dev-dependencies]
-  quickcheck = "*"
-  quickcheck_macros = "*"
-  rand = "*"
+rand = "0.5"
+serde_derive = "1"
